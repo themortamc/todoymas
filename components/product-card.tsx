@@ -61,7 +61,7 @@ export function ProductCard({
             <Heart
               className={cn(
                 'h-5 w-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] transition-colors',
-                favorite ? 'fill-accent text-accent' : 'text-white'
+                favorite ? 'fill-accent text-accent' : 'text-brand-cream'
               )}
             />
           </button>

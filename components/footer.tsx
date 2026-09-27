@@ -6,7 +6,7 @@ import { Phone, MapPin, Instagram, Facebook, CreditCard, Landmark, Wallet } from
 import { supabase, type Category } from '@/lib/supabase';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { TikTokIcon } from '@/components/icons/tiktok-icon';
-import { LogoMark, MandalaLine, LeafBranch } from '@/components/decorative-plants';
+import { LogoMark, MandalaLine, LeafBranch, Bloom, Vine } from '@/components/decorative-plants';
 import { WHATSAPP_URL, WHATSAPP_CHANNEL_URL, INSTAGRAM_URL, TIKTOK_URL, FACEBOOK_URL } from '@/lib/contact';
 
 export function Footer() {
@@ -42,9 +42,13 @@ export function Footer() {
         </svg>
       </div>
       <div className="relative overflow-hidden bg-footer bg-grain bg-mandala-tile-light text-footer-foreground">
-        <MandalaLine className="pointer-events-none absolute -left-28 -top-32 h-80 w-80 text-footer-foreground/25" />
-        <MandalaLine className="pointer-events-none absolute -bottom-36 right-1/3 h-72 w-72 text-footer-foreground/20" />
-        <LeafBranch className="pointer-events-none absolute -right-4 top-6 h-56 w-auto text-footer-foreground/20 hidden lg:block -scale-x-100 rotate-12" />
+        <MandalaLine className="pointer-events-none absolute -left-28 -top-32 h-80 w-80 text-footer-foreground/30" />
+        <MandalaLine className="pointer-events-none absolute -bottom-36 right-1/3 h-72 w-72 text-footer-foreground/25" />
+        <MandalaLine className="pointer-events-none absolute -right-24 -bottom-28 h-64 w-64 text-footer-foreground/20 hidden md:block" />
+        <LeafBranch className="pointer-events-none absolute -right-4 top-6 h-56 w-auto text-footer-foreground/25 hidden lg:block -scale-x-100 rotate-12" />
+        <LeafBranch className="pointer-events-none absolute left-1/3 -bottom-8 h-44 w-auto text-footer-foreground/15 hidden xl:block rotate-180" />
+        <Bloom className="pointer-events-none absolute right-12 bottom-16 h-14 w-14 text-footer-foreground/25 hidden md:block" />
+        <Vine className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 w-80 text-footer-foreground/20 hidden lg:block" />
         <div className="container mx-auto px-4 pb-8 pt-4 relative">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-3">
@@ -65,7 +69,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Escribinos por WhatsApp"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-white transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-brand-sand transition-colors"
                 >
                   <WhatsAppIcon className="h-4 w-4" />
                 </a>
@@ -74,7 +78,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Seguinos en Facebook"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-white transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-brand-sand transition-colors"
                 >
                   <Facebook className="h-4 w-4" />
                 </a>
@@ -83,7 +87,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Seguinos en Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-white transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-brand-sand transition-colors"
                 >
                   <Instagram className="h-4 w-4" />
                 </a>
@@ -92,7 +96,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Seguinos en TikTok"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-white transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-footer-foreground text-footer hover:bg-brand-sand transition-colors"
                 >
                   <TikTokIcon className="h-4 w-4" />
                 </a>
