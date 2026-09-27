@@ -8,7 +8,7 @@ import { StoreLayout } from '@/components/store-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { LeafSprig, Bloom } from '@/components/decorative-plants';
+import { LeafSprig, LeafBranch, Bloom, MandalaLine, Vine } from '@/components/decorative-plants';
 import { useCart, type CartVariant } from '@/lib/cart-context';
 import { supabase, type Product, type Category, type ProductVariant } from '@/lib/supabase';
 import { formatPrice } from '@/lib/format';
@@ -181,9 +181,15 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   return (
     <StoreLayout>
-      <div className="relative overflow-hidden bg-grain bg-brand-sand/45">
-        <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-20 w-12 text-primary opacity-[0.08] rotate-12 sm:-top-6 sm:right-6 sm:h-32 sm:w-20" />
-        <Bloom className="pointer-events-none absolute -bottom-8 -left-4 h-24 w-24 text-accent opacity-[0.07] hidden md:block" />
+      <div className="relative overflow-hidden bg-grain bg-garden bg-brand-sand/60">
+        <MandalaLine className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 text-primary/20 sm:h-96 sm:w-96" />
+        <MandalaLine className="pointer-events-none absolute -left-32 top-1/3 h-72 w-72 text-brand-clay/25 hidden md:block" />
+        <LeafBranch className="pointer-events-none absolute left-0 bottom-16 h-56 w-auto text-primary/30 hidden xl:block" />
+        <LeafBranch className="pointer-events-none absolute right-0 top-64 h-56 w-auto text-primary/25 hidden xl:block -scale-x-100" />
+        <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-20 w-12 text-primary/25 rotate-12 sm:-top-6 sm:right-6 sm:h-32 sm:w-20" />
+        <Bloom className="pointer-events-none absolute -bottom-8 -left-4 h-24 w-24 text-accent/25 hidden md:block" />
+        <Bloom className="pointer-events-none absolute right-1/4 top-4 h-12 w-12 text-brand-clay/40 hidden md:block" />
+        <Vine className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 w-72 text-primary/25 hidden lg:block" />
         <div className="container mx-auto px-4 py-8 relative">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -315,7 +321,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                               <img src={opt.image_url} alt={opt.label} className="h-full w-full object-cover" />
                               {isSelected && (
                                 <span className="absolute inset-0 flex items-center justify-center bg-foreground/20">
-                                  <Check className="h-5 w-5 text-white drop-shadow" />
+                                  <Check className="h-5 w-5 text-brand-cream drop-shadow" />
                                 </span>
                               )}
                               <span className="absolute bottom-0 inset-x-0 truncate bg-background/85 px-1 py-0.5 text-[10px] font-medium leading-tight">
@@ -340,7 +346,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                               style={{ backgroundColor: opt.color_hex }}
                             >
                               {isSelected && (
-                                <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" />
+                                <Check className="absolute inset-0 m-auto h-4 w-4 text-brand-cream drop-shadow" />
                               )}
                             </button>
                           );

@@ -4,25 +4,28 @@
 
 @layer base {
   :root {
-    --background: 60 25% 97%;
+    /* Fondos cálidos de marca (arena/crema): nunca blanco total. El fondo
+       general es arena claro, las tarjetas un crema apenas más luminoso
+       para conservar el contraste sin llegar al blanco. */
+    --background: 43 36% 90%;
     --foreground: 152 25% 14%;
-    --card: 60 33% 98%;
+    --card: 46 44% 94.5%;
     --card-foreground: 152 25% 14%;
-    --popover: 60 33% 98%;
+    --popover: 46 44% 94.5%;
     --popover-foreground: 152 25% 14%;
     --primary: 151 34% 27%;
-    --primary-foreground: 60 33% 98%;
-    --secondary: 39 35% 91%;
+    --primary-foreground: 45 40% 95%;
+    --secondary: 38 30% 85%;
     --secondary-foreground: 151 34% 20%;
-    --muted: 108 15% 84%;
-    --muted-foreground: 100 6% 38%;
+    --muted: 105 14% 80%;
+    --muted-foreground: 100 6% 36%;
     --accent: 35 42% 63%;
     --accent-foreground: 151 34% 16%;
     --accent-ink: 30 42% 34%;
     --destructive: 6 58% 45%;
-    --destructive-foreground: 60 33% 98%;
-    --border: 39 20% 82%;
-    --input: 39 20% 82%;
+    --destructive-foreground: 45 40% 95%;
+    --border: 37 22% 75%;
+    --input: 37 22% 75%;
     --ring: 151 34% 27%;
     --chart-1: 151 34% 34%;
     --chart-2: 35 42% 55%;
@@ -31,11 +34,11 @@
     --chart-5: 195 25% 35%;
     --radius: 1.25rem;
     --success: 151 34% 24%;
-    --success-foreground: 60 33% 98%;
+    --success-foreground: 45 40% 95%;
     --warning: 38 75% 48%;
     --warning-foreground: 152 25% 14%;
     --footer: 151 34% 27%;
-    --footer-foreground: 39 30% 92%;
+    --footer-foreground: 42 32% 90%;
   }
 
   .dark {
@@ -68,10 +71,13 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: clip;
-    /* Textura de papel muy sutil en todo el sitio: evita que las zonas sin
-       contenido (páginas cortas, estados vacíos) se vean planas. Las
-       secciones con color propio la tapan, así que no compite con ellas. */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.53 0 0 0 0 0.56 0 0 0 0 0.52 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* Base cálida viva: dos velos radiales (salvia arriba, arcilla abajo)
+       + grano de papel. Ninguna zona queda en plano vacío ni en blanco. */
+    background-image:
+      radial-gradient(1100px 480px at 12% -6%, hsl(108 22% 76% / 0.35), transparent 62%),
+      radial-gradient(900px 520px at 88% 8%, hsl(35 45% 70% / 0.22), transparent 60%),
+      radial-gradient(1000px 700px at 50% 115%, hsl(35 40% 72% / 0.20), transparent 62%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.42 0 0 0 0 0.44 0 0 0 0 0.38 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
@@ -104,26 +110,41 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.5;
+    opacity: 0.6;
     mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.53 0 0 0 0 0.56 0 0 0 0 0.52 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.42 0 0 0 0 0.44 0 0 0 0 0.38 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  /* Patrón de hojas repetido (swatch "hojas" de texturas/fondos). */
+  /* Patrón de hojas APUNTADAS repetido (swatch "hojas" de texturas/fondos).
+     Tres hojas + puntitos por baldosa para que el fondo respire sin
+     quedar vacío. */
   .bg-leaf-tile {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.4' opacity='0.07'%3E%3Cpath d='M20 100c8-30 30-48 58-46-4 30-28 50-58 46Z'/%3E%3Cpath d='M26 96c14-22 34-34 50-32'/%3E%3C/g%3E%3Cg fill='none' stroke='%23C9A87A' stroke-width='1.2' opacity='0.06' transform='translate(60 10) rotate(160)'%3E%3Cpath d='M10 50c4-15 15-24 29-23-2 15-14 25-29 23Z'/%3E%3Cpath d='M13 48c7-11 17-17 25-16'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 120px 120px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.5' opacity='0.12'%3E%3Cpath d='M18 118c8-34 32-54 64-52-4 34-30 56-64 52Z'/%3E%3Cpath d='M25 113c15-24 37-37 55-35'/%3E%3C/g%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.1' opacity='0.10' transform='translate(84 78) rotate(35)'%3E%3Cpath d='M8 40c3-12 12-19 24-18-2 12-11 20-24 18Z'/%3E%3Cpath d='M10 38c5-8 12-12 20-11'/%3E%3C/g%3E%3Cg fill='none' stroke='%23C9A87A' stroke-width='1.2' opacity='0.11' transform='translate(70 8) rotate(160)'%3E%3Cpath d='M10 50c4-15 15-24 29-23-2 15-14 25-29 23Z'/%3E%3Cpath d='M13 48c7-11 17-17 25-16'/%3E%3C/g%3E%3Cg fill='%232E5D46' opacity='0.09'%3E%3Ccircle cx='118' cy='112' r='2.4'/%3E%3Ccircle cx='126' cy='102' r='1.6'/%3E%3Ccircle cx='12' cy='22' r='2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 140px 140px;
   }
   /* Patrón de mandala repetido en cuadrícula (swatch "mandala" de
-     texturas/fondos). */
+     texturas/fondos). Pétalos APUNTADOS (gota), nunca óvalos: cada pétalo
+     es un path con punta afilada afuera y base angosta adentro. */
   .bg-mandala-tile {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1' opacity='0.055' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1' opacity='0.10' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(45)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(90)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(135)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(180)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(225)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(270)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(315)'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(45)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(90)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(135)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(180)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(225)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(270)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-size: 160px 160px;
   }
-  /* Misma trama de mandala pero en trazo claro, para usar sobre fondos
-     oscuros (footer, banner CTA) donde el trazo verde oscuro no se vería. */
+  /* Misma trama de mandala pero en trazo crema cálido (nunca blanco puro),
+     para usar sobre fondos oscuros (footer, banner CTA). */
   .bg-mandala-tile-light {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23FAF9F6' stroke-width='1' opacity='0.06' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23F3EEE3' stroke-width='1' opacity='0.10' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(45)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(90)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(135)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(180)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(225)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(270)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(315)'/%3E%3C/g%3E%3Cg%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(45)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(90)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(135)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(180)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(225)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(270)'/%3E%3Cpath d='M0,-34 C3,-30 3,-24 0,-20 C-3,-24 -3,-30 0,-34 Z' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-size: 160px 160px;
+  }
+  /* Jardín completo: velos cálidos + trama de hojas + trama de mandala en
+     una sola clase (las utilidades de fondo se pisan entre sí, así que las
+     secciones ricas usan solo esta). Para usar junto a un color de fondo
+     tipo bg-brand-sand/70. */
+  .bg-garden {
+    background-image:
+      radial-gradient(720px 300px at 8% 0%, hsl(108 22% 68% / 0.20), transparent 65%),
+      radial-gradient(720px 340px at 96% 100%, hsl(35 45% 62% / 0.18), transparent 65%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.5' opacity='0.12'%3E%3Cpath d='M18 118c8-34 32-54 64-52-4 34-30 56-64 52Z'/%3E%3Cpath d='M25 113c15-24 37-37 55-35'/%3E%3C/g%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.1' opacity='0.10' transform='translate(84 78) rotate(35)'%3E%3Cpath d='M8 40c3-12 12-19 24-18-2 12-11 20-24 18Z'/%3E%3Cpath d='M10 38c5-8 12-12 20-11'/%3E%3C/g%3E%3Cg fill='none' stroke='%23C9A87A' stroke-width='1.2' opacity='0.11' transform='translate(70 8) rotate(160)'%3E%3Cpath d='M10 50c4-15 15-24 29-23-2 15-14 25-29 23Z'/%3E%3Cpath d='M13 48c7-11 17-17 25-16'/%3E%3C/g%3E%3Cg fill='%232E5D46' opacity='0.09'%3E%3Ccircle cx='118' cy='112' r='2.4'/%3E%3Ccircle cx='126' cy='102' r='1.6'/%3E%3Ccircle cx='12' cy='22' r='2'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1' opacity='0.08' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(45)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(90)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(135)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(180)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(225)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(270)'/%3E%3Cpath d='M0,-63 C4.5,-56 4.5,-44 0,-37 C-4.5,-44 -4.5,-56 0,-63 Z' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-size: auto, auto, 140px 140px, 160px 160px;
   }
   /* Degradado diagonal verde (swatch de textura verde del manual), para
      bloques destacados como el CTA final. Antes tenía un patrón de rayas

@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Check, Clock, X } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { Button } from '@/components/ui/button';
+import { MandalaLine, Bloom, Vine } from '@/components/decorative-plants';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
 
 function statusFromParams(searchParams: URLSearchParams) {
@@ -51,7 +52,12 @@ function RetornoContent() {
 
   return (
     <StoreLayout>
-      <div className="container mx-auto px-4 py-16">
+      <div className="relative overflow-hidden bg-grain bg-garden bg-brand-sand/60">
+        <MandalaLine className="pointer-events-none absolute left-1/2 top-1/2 h-[30rem] w-[30rem] -translate-x-1/2 -translate-y-1/2 text-primary/15" />
+        <Bloom className="pointer-events-none absolute left-8 top-8 h-14 w-14 text-brand-clay/40 hidden sm:block" />
+        <Bloom className="pointer-events-none absolute right-8 bottom-8 h-16 w-16 text-primary/25 hidden sm:block" />
+        <Vine className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 w-72 text-primary/30 hidden md:block" />
+      <div className="container relative mx-auto px-4 py-16">
         <div className="max-w-md mx-auto text-center">
           <div className={`flex h-20 w-20 mx-auto items-center justify-center rounded-full mb-6 ${iconClass}`}>
             <Icon className="h-10 w-10" />
@@ -85,6 +91,7 @@ function RetornoContent() {
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </StoreLayout>
   );

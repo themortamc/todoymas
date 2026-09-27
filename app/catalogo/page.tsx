@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { ProductCard } from '@/components/product-card';
-import { LeafSprig, Bloom } from '@/components/decorative-plants';
+import { LeafSprig, LeafBranch, Bloom, MandalaLine, Vine } from '@/components/decorative-plants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -271,10 +271,16 @@ function CatalogContent() {
 
   return (
     <StoreLayout>
-      <div className="relative overflow-hidden bg-grain bg-brand-sand/45">
-        <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-24 w-14 text-primary opacity-[0.1] rotate-12 sm:-top-6 sm:right-6 sm:h-40 sm:w-24" />
-        <LeafSprig className="pointer-events-none absolute -bottom-4 -left-2 h-24 w-14 text-accent opacity-[0.08] -rotate-[20deg] sm:-bottom-6 sm:-left-3 sm:h-32 sm:w-20 md:h-40 md:w-24" />
-        <Bloom className="pointer-events-none absolute right-1/3 -bottom-8 h-20 w-20 text-primary opacity-[0.06] hidden md:block" />
+      <div className="relative overflow-hidden bg-grain bg-garden bg-brand-sand/60">
+        <MandalaLine className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 text-primary/20 sm:h-96 sm:w-96" />
+        <MandalaLine className="pointer-events-none absolute -left-32 bottom-1/4 h-72 w-72 text-brand-clay/25 hidden md:block" />
+        <LeafBranch className="pointer-events-none absolute left-0 top-40 h-64 w-auto text-primary/30 hidden xl:block" />
+        <LeafBranch className="pointer-events-none absolute right-0 bottom-24 h-64 w-auto text-primary/30 hidden xl:block -scale-x-100" />
+        <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-24 w-14 text-primary/25 rotate-12 sm:-top-6 sm:right-6 sm:h-40 sm:w-24" />
+        <LeafSprig className="pointer-events-none absolute -bottom-4 -left-2 h-24 w-14 text-accent/25 -rotate-[20deg] sm:-bottom-6 sm:-left-3 sm:h-32 sm:w-20 md:h-40 md:w-24" />
+        <Bloom className="pointer-events-none absolute right-1/3 -bottom-8 h-20 w-20 text-primary/20 hidden md:block" />
+        <Bloom className="pointer-events-none absolute left-1/4 top-2 h-12 w-12 text-brand-clay/40 hidden md:block" />
+        <Vine className="pointer-events-none absolute top-1 left-1/2 -translate-x-1/2 w-72 text-primary/30 hidden lg:block" />
         <div className="container mx-auto px-4 py-8 relative">
           <div className="flex items-center justify-between mb-6">
           <div>
