@@ -32,9 +32,9 @@ export function ProductCard({
   const favorite = isFavorite(product.id);
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-300 hover:shadow-soft-md hover:-translate-y-1">
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:shadow-soft-md hover:-translate-y-1">
       <Link href={`/producto/${product.id}`} className="block">
-        <div className="relative aspect-square overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {product.images[0] && !imgError ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -49,20 +49,6 @@ export function ProductCard({
             </div>
           )}
 
-          <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-            {category && (
-              <span
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm"
-                style={{ backgroundColor: tint.bg, color: tint.fg }}
-              >
-                {category.name}
-              </span>
-            )}
-            {product.featured && (
-              <Badge className="bg-accent text-accent-foreground">Destacado</Badge>
-            )}
-          </div>
-
           <button
             type="button"
             onClick={(e) => {
@@ -70,10 +56,13 @@ export function ProductCard({
               toggleFavorite(product);
             }}
             title={favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-            className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm transition-colors hover:bg-background"
+            className="absolute top-2.5 right-2.5 p-1 transition-transform hover:scale-110"
           >
             <Heart
-              className={cn('h-4 w-4 transition-colors', favorite ? 'fill-accent text-accent' : 'text-foreground')}
+              className={cn(
+                'h-5 w-5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] transition-colors',
+                favorite ? 'fill-accent text-accent' : 'text-white'
+              )}
             />
           </button>
 
@@ -85,43 +74,44 @@ export function ProductCard({
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="relative flex flex-1 flex-col p-4 pt-5">
+        {category && (
+          <span
+            className="absolute -top-3.5 left-4 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm whitespace-nowrap"
+            style={{ backgroundColor: tint.bg, color: tint.fg }}
+          >
+            {category.name}
+          </span>
+        )}
         <Link href={`/producto/${product.id}`}>
           <h3 className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">
             {product.name}
           </h3>
         </Link>
-        <p className="text-xs text-muted-foreground line-clamp-2 mt-1 flex-1">
-          {product.description}
-        </p>
-        <div className="mt-3 space-y-3">
-          <div>
-            <p className="text-lg font-display font-semibold">{formatPrice(product.price)}</p>
-            <p className={cn('text-xs', outOfStock ? 'text-destructive' : 'text-success')}>
-              {outOfStock ? 'Sin stock' : product.has_variants ? 'Varias opciones disponibles' : `${product.stock} disponibles`}
-            </p>
-          </div>
-          <Button
-            className="w-full"
-            disabled={outOfStock}
-            onClick={(e) => {
-              e.preventDefault();
-              if (product.has_variants) {
-                // Tiene variantes (color, aroma, talle...): hay que elegir
-                // una opción antes de agregar, así que llevamos a la ficha.
-                router.push(`/producto/${product.id}`);
-                return;
-              }
-              addItem(product, 1);
-            }}
-          >
-            {product.has_variants ? (
-              <>Ver opciones <ArrowRight className="h-4 w-4 ml-2" /></>
-            ) : (
-              <><ShoppingCart className="h-4 w-4 mr-2" /> Agregar al carrito</>
-            )}
-          </Button>
-        </div>
+        <p className="text-lg font-display font-bold mt-1">{formatPrice(product.price)}</p>
+        <Button
+          size="sm"
+          className="w-full rounded-full mt-3 text-xs gap-1.5"
+          disabled={outOfStock}
+          onClick={(e) => {
+            e.preventDefault();
+            if (product.has_variants) {
+              // Tiene variantes (color, aroma, talle...): hay que elegir
+              // una opción antes de agregar, así que llevamos a la ficha.
+              router.push(`/producto/${product.id}`);
+              return;
+            }
+            addItem(product, 1);
+          }}
+        >
+          {outOfStock ? (
+            'Sin stock'
+          ) : product.has_variants ? (
+            <>Ver opciones <ArrowRight className="h-3.5 w-3.5" /></>
+          ) : (
+            <><ShoppingCart className="h-3.5 w-3.5" /> Agregar al carrito</>
+          )}
+        </Button>
       </div>
     </div>
   );

@@ -70,41 +70,36 @@ export function CategoryMenu({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <>
-      {parents.map((parent) => {
-        const Icon = parent.icon ? iconMap[parent.icon] : null;
-        const subs = childrenOf(parent.id);
-        return (
-          <DropdownMenu key={parent.id} modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-1.5 px-4">
-                {Icon && <Icon className="h-4 w-4" />}
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+          Categorías
+          <ChevronDown className="h-3 w-3 opacity-50" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" className="w-60">
+        <DropdownMenuLabel className="font-semibold">
+          Explorá por categorías
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {parents.map((parent) => {
+          const Icon = parent.icon ? iconMap[parent.icon] : null;
+          return (
+            <DropdownMenuItem key={parent.id} asChild>
+              <Link href={`/catalogo?categoria=${parent.slug}`} className="flex items-center gap-2">
+                {Icon && <Icon className="h-4 w-4 text-primary" />}
                 {parent.name}
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel className="font-semibold">
-                {parent.name}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={`/catalogo?categoria=${parent.slug}`}>
-                  Ver todo en {parent.name}
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {subs.map((sub) => (
-                <DropdownMenuItem key={sub.id} asChild>
-                  <Link href={`/catalogo?subcategoria=${sub.slug}`}>
-                    {sub.name}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      })}
-    </>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/catalogo" className="font-medium text-primary">
+            Ver todos los productos
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
