@@ -206,3 +206,47 @@ export function PaintedBlob({
     </svg>
   );
 }
+
+// Ramita de eucalipto: tallo curvado con hojas ovaladas redondeadas,
+// calcada de las ilustraciones del manual de marca. Se usa en los bordes
+// de las secciones grandes (hero, categorías, banner). Hereda color vía
+// currentColor.
+export function LeafBranch({ className }: { className?: string }) {
+  // Hojas como elipses rotadas: forma predecible y limpia.
+  const leaves = [
+    { cx: 36, cy: 272, rx: 10, ry: 22, rotate: -32 },
+    { cx: 84, cy: 266, rx: 10, ry: 22, rotate: 30 },
+    { cx: 35, cy: 222, rx: 10.5, ry: 23, rotate: -30 },
+    { cx: 85, cy: 215, rx: 10.5, ry: 23, rotate: 28 },
+    { cx: 36, cy: 170, rx: 10, ry: 22, rotate: -28 },
+    { cx: 84, cy: 163, rx: 10, ry: 22, rotate: 27 },
+    { cx: 38, cy: 120, rx: 9, ry: 20, rotate: -26 },
+    { cx: 82, cy: 112, rx: 9, ry: 20, rotate: 25 },
+    { cx: 42, cy: 72, rx: 8, ry: 17, rotate: -24 },
+    { cx: 78, cy: 64, rx: 8, ry: 17, rotate: 23 },
+    { cx: 64, cy: 26, rx: 8, ry: 18, rotate: 8 },
+  ];
+  return (
+    <svg viewBox="0 0 120 320" className={className} aria-hidden="true">
+      <path
+        d="M60 318 C58 250 56 170 64 30"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <g fill="currentColor">
+        {leaves.map((l, i) => (
+          <ellipse
+            key={i}
+            cx={l.cx}
+            cy={l.cy}
+            rx={l.rx}
+            ry={l.ry}
+            transform={`rotate(${l.rotate} ${l.cx} ${l.cy})`}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}

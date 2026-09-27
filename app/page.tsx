@@ -2,14 +2,18 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Truck, ShieldCheck, Store, Headphones } from 'lucide-react';
+import { ArrowRight, Truck, MapPin, CreditCard, Headphones, Home } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { ProductCard } from '@/components/product-card';
-import { OrganicBlob, LeafScatter, LeafSprig, Vine, Bloom, Mandala } from '@/components/decorative-plants';
+import { LeafBranch, LogoMark, PaintedBlob } from '@/components/decorative-plants';
 import { supabase, type Product, type Category } from '@/lib/supabase';
-import { Home } from 'lucide-react';
-import { CATEGORY_ICON_MAP as iconMap, tintForCategory, blobVariantForCategory } from '@/lib/category-icons';
-import { PaintedBlob } from '@/components/decorative-plants';
+import { CATEGORY_ICON_MAP as iconMap, tintForCategory, blobVariantForCategory, subtitleForCategory } from '@/lib/category-icons';
+
+type ThinIcon = React.ComponentType<{
+  className?: string;
+  style?: React.CSSProperties;
+  strokeWidth?: number | string;
+}>;
 
 export default function HomePage() {
   const [featured, setFeatured] = useState<Product[]>([]);
@@ -29,7 +33,7 @@ export default function HomePage() {
           .from('products')
           .select('*')
           .eq('featured', true)
-          .limit(8),
+          .limit(6),
         supabase
           .from('categories')
           .select('*')
@@ -43,142 +47,113 @@ export default function HomePage() {
     load();
   }, []);
 
+  const heroRubros = [...categories.slice(0, 5).map((c) => c.name), 'Más'];
+
   return (
     <StoreLayout>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-grain">
-        <div className="grid lg:grid-cols-2 items-stretch">
-          {/* Columna de texto */}
-          <div className="order-2 lg:order-1 px-4 sm:px-6 lg:pl-12 xl:pl-20 lg:pr-10 relative z-10 overflow-hidden">
-            <Mandala className="pointer-events-none absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 h-64 w-64 md:h-80 md:w-80 text-primary" />
-            <LeafScatter className="pointer-events-none absolute left-1 top-1 h-20 w-20 sm:h-32 sm:w-32 text-primary opacity-80" />
-            <Bloom className="pointer-events-none absolute left-2 bottom-6 h-14 w-14 sm:h-20 sm:w-20 text-brand-clay opacity-40" />
-            <div className="text-center lg:text-left py-14 md:py-20 relative">
-              <p className="font-script text-xl md:text-2xl text-accent-ink">Todo lo que necesitás...</p>
-              <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-primary drop-shadow-sm mt-1">
+      {/* Hero: panel crema + foto con borde orgánico */}
+      <section className="relative overflow-hidden">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] items-stretch">
+          <div className="relative px-4 sm:px-6 lg:pl-12 xl:pl-20 lg:pr-8 py-12 md:py-16 lg:py-20">
+            <LeafBranch className="pointer-events-none absolute left-0 top-4 h-44 w-auto text-primary/40 hidden md:block" />
+            <LeafBranch className="pointer-events-none absolute left-1 bottom-2 h-32 w-auto text-primary/30 hidden md:block -scale-x-100" />
+            <div className="relative max-w-xl">
+              <p className="font-script text-2xl md:text-3xl text-primary">Todo lo que necesitás...</p>
+              <h1 className="font-display font-black uppercase tracking-tight text-primary text-5xl md:text-6xl xl:text-7xl leading-[1.05] mt-2">
                 Todo y Más
               </h1>
-              <p className="text-2xl md:text-3xl font-display text-foreground/80 mt-1">en un solo lugar ♡</p>
-              <p className="text-sm md:text-base font-medium text-muted-foreground mt-5 tracking-wide">
-                Belleza · Bazar &amp; Hogar · Pesca · Electro · Herramientas · Más
+              <p className="font-script text-2xl md:text-3xl text-foreground mt-2">en un solo lugar ♡</p>
+              <p className="text-[11px] md:text-xs font-semibold tracking-[0.14em] text-foreground/70 mt-5 uppercase">
+                {heroRubros.join('  ·  ')}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center lg:justify-start">
-                <Link href="/catalogo">
-                  <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-8 py-3 font-semibold shadow-soft hover:shadow-soft-md hover:-translate-y-0.5 transition-all">
-                    Ver productos
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </Link>
-                <Link href="/catalogo?destacados=true">
-                  <button className="inline-flex items-center gap-2 bg-background border border-foreground/70 rounded-full px-8 py-3 font-semibold hover:bg-secondary hover:-translate-y-0.5 transition-all">
-                    Ver más
-                  </button>
-                </Link>
-              </div>
+              <Link href="/catalogo" className="inline-block mt-7">
+                <span className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-8 py-3 text-sm font-semibold shadow-soft hover:shadow-soft-md hover:-translate-y-0.5 transition-all">
+                  Ver productos
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
             </div>
           </div>
-
-          {/* Columna de foto: paisaje + mochila/termo (los productos que la clienta pidió que se vean).
-              Va primero en mobile (order-1) para que no quede relegada al final del scroll. */}
-          <div className="order-1 lg:order-2 relative h-64 sm:h-96 lg:h-auto lg:min-h-[420px] overflow-hidden rounded-b-[2.5rem] lg:rounded-b-none lg:rounded-l-[4rem]">
-            <img
-              src="/images/hero-mochila.jpg"
-              alt="Paisaje de montaña y lago con mochila y termo de camping"
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
-            />
-            <Mandala className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-background opacity-60" />
-            <p className="font-script text-lg md:text-xl text-background drop-shadow-md absolute top-6 right-6 md:top-10 md:right-10 text-right leading-tight">
-              Lo esencial, lo útil,<br />lo que te gusta... ♡
-            </p>
+          <div className="relative px-4 pb-10 lg:p-0">
+            <div className="relative h-72 sm:h-96 lg:h-full lg:min-h-[480px] overflow-hidden rounded-[2rem] lg:rounded-none lg:rounded-l-[5rem]">
+              <img
+                src="/images/hero-mochila.jpg"
+                alt="Lago y montañas al atardecer con mochila y termo de camping"
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="eager"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
+              <p className="font-script text-xl md:text-2xl text-white/95 drop-shadow-md absolute top-5 right-5 md:top-8 md:right-8 text-right leading-snug">
+                Lo esencial, lo útil,<br />lo que te gusta... ♡
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features bar */}
-      <section className="relative overflow-hidden border-y border-border bg-secondary/60 bg-leaf-tile">
-        <LeafSprig className="absolute -bottom-4 left-2 h-20 w-12 text-primary sm:-bottom-6 sm:left-6 sm:h-32 sm:w-20" />
-        <LeafSprig className="absolute -top-6 right-3 h-16 w-10 text-accent rotate-[160deg] sm:-top-10 sm:right-10 sm:h-28 sm:w-16" />
-        <Vine className="pointer-events-none absolute -bottom-2 left-0 h-8 w-full text-primary opacity-[0.12] sm:h-10" />
-        <div className="container mx-auto px-4 py-8 relative">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: Truck, title: 'Envíos a todo el país', desc: 'Entregas rápidas' },
-              { icon: Store, title: 'Retiro en local', desc: 'Sin costo adicional' },
-              { icon: ShieldCheck, title: 'Compra segura', desc: 'Pago protegido' },
-              { icon: Headphones, title: 'Atención personalizada', desc: 'Lun a Sáb' },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <f.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                  <p className="text-xs text-muted-foreground">{f.desc}</p>
-                </div>
-              </div>
-            ))}
+      {/* Categorías */}
+      <section className="relative overflow-hidden">
+        <LeafBranch className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 h-64 w-auto text-primary/40 hidden lg:block" />
+        <LeafBranch className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-64 w-auto text-primary/40 hidden lg:block -scale-x-100" />
+        <div className="container mx-auto px-4 py-12 md:py-14 relative">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-10">
+            {categories.map((cat) => {
+              const Icon = (cat.icon ? iconMap[cat.icon] ?? Home : Home) as ThinIcon;
+              const palette = tintForCategory(cat.icon ?? cat.id);
+              const blobVariant = blobVariantForCategory(cat.id);
+              const subtitle = subtitleForCategory(cat.icon);
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/catalogo?categoria=${cat.slug}`}
+                  className="group flex flex-col items-center text-center"
+                >
+                  <div className="relative flex h-24 w-24 md:h-28 md:w-28 items-center justify-center">
+                    <PaintedBlob
+                      variant={blobVariant}
+                      className="absolute inset-0 h-full w-full transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
+                      style={{ color: palette.bg }}
+                    />
+                    <Icon className="relative h-10 w-10" style={{ color: palette.fg }} strokeWidth={1.5} />
+                  </div>
+                  <span className="mt-3 font-display text-base md:text-lg font-bold text-foreground">
+                    {cat.name}
+                  </span>
+                  {subtitle && (
+                    <span className="text-xs text-muted-foreground leading-snug mt-0.5 max-w-[12rem]">
+                      {subtitle}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="relative overflow-hidden bg-mandala-tile bg-secondary/20">
-       <div className="container mx-auto px-4 py-14 relative">
-        <Mandala className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-brand-stone sm:h-96 sm:w-96" />
-        <LeafSprig className="pointer-events-none absolute -top-4 -left-2 h-24 w-14 text-primary opacity-[0.09] -rotate-12 sm:h-36 sm:w-20" />
-        <Bloom className="pointer-events-none absolute -bottom-6 right-2 h-20 w-20 text-accent opacity-[0.12] sm:h-28 sm:w-28" />
-        <div className="flex items-center justify-between mb-6 relative">
-          <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight">Explorá por categorías</h2>
-          <Link href="/catalogo" className="text-sm font-medium text-primary hover:underline">
-            Ver todo
-          </Link>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-8 relative">
-          {categories.map((cat) => {
-            const Icon = cat.icon ? iconMap[cat.icon] : Home;
-            const palette = tintForCategory(cat.icon ?? cat.id);
-            const blobVariant = blobVariantForCategory(cat.id);
-            return (
-              <Link
-                key={cat.id}
-                href={`/catalogo?categoria=${cat.slug}`}
-                className="group flex flex-col items-center gap-3 text-center"
-              >
-                <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center">
-                  <PaintedBlob
-                    variant={blobVariant}
-                    className="absolute inset-0 h-full w-full transition-transform group-hover:scale-110"
-                    style={{ color: palette.bg }}
-                  />
-                  <Icon className="relative h-8 w-8" style={{ color: palette.fg }} />
-                </div>
-                <span className="text-sm font-semibold">{cat.name}</span>
-              </Link>
-            );
-          })}
-        </div>
-        </div>
-      </section>
-
-      {/* Featured products */}
-      <section className="relative overflow-hidden bg-grain container mx-auto px-4 py-10">
-        <LeafScatter className="pointer-events-none absolute -right-6 bottom-0 h-32 w-32 text-accent opacity-[0.1] sm:h-52 sm:w-52" />
-        <LeafSprig className="pointer-events-none absolute -top-6 -left-3 h-24 w-14 text-primary opacity-[0.08] rotate-[25deg] sm:h-36 sm:w-20" />
-        <div className="flex items-center justify-between mb-6 relative">
-          <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight">Productos destacados</h2>
-          <Link href="/catalogo?destacados=true" className="text-sm font-medium text-primary hover:underline">
-            Ver más
+      {/* Productos destacados */}
+      <section className="container mx-auto px-4 py-10 md:py-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="flex items-center gap-2.5 text-2xl md:text-3xl font-display font-bold tracking-tight text-foreground">
+            <LogoMark className="h-7 w-7 md:h-8 md:w-8 text-primary shrink-0" />
+            Productos destacados
+          </h2>
+          <Link
+            href="/catalogo?destacados=true"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
+          >
+            Ver todos
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 relative">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-3xl border border-border bg-muted animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] rounded-2xl border border-border bg-muted animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 relative">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {featured.map((product) => (
               <ProductCard key={product.id} product={product} categoryMap={categoryMap} />
             ))}
@@ -186,60 +161,64 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Banner promocional: foto + bloque de ofertas, como en las referencias */}
-      <section className="container mx-auto px-4 py-14">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="relative overflow-hidden rounded-[2rem] min-h-[220px] flex items-end p-8 shadow-soft-lg">
-            <img
-              src="/images/banner-vela.jpg"
-              alt="Vela encendida junto a piedras decorativas"
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-            <p className="font-script text-2xl md:text-3xl text-primary-foreground leading-tight relative">
-              Conectá con la naturaleza en cada detalle ♡
-            </p>
-          </div>
-          <div className="relative overflow-hidden rounded-[2rem] bg-secondary p-8 md:p-10 flex flex-col justify-center shadow-soft-lg">
-            <Mandala className="pointer-events-none absolute -right-10 -bottom-10 h-48 w-48 text-primary" />
-            <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-primary relative">
-              Ofertas imperdibles
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-sm relative">
-              Productos seleccionados con los mejores precios.
-            </p>
-            <Link href="/catalogo?destacados=true" className="relative mt-6 w-fit">
-              <button className="inline-flex items-center gap-2 bg-accent text-accent-foreground rounded-full px-6 py-3 font-semibold hover:-translate-y-0.5 transition-all shadow-soft">
-                Ver ofertas
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </Link>
+      {/* Banner + ofertas */}
+      <section className="relative overflow-hidden">
+        <LeafBranch className="pointer-events-none absolute left-0 bottom-0 h-40 w-auto text-primary/40 hidden lg:block" />
+        <LeafBranch className="pointer-events-none absolute right-0 top-0 h-40 w-auto text-primary/40 hidden lg:block -scale-x-100 rotate-180" />
+        <div className="container mx-auto px-4 py-10 md:py-14 relative">
+          <div className="grid md:grid-cols-[1fr_1.25fr_1fr] rounded-[2rem] overflow-hidden shadow-soft-lg">
+            <div className="bg-[#D8E4D3] p-8 md:p-10 flex flex-col items-start justify-center gap-4">
+              <LogoMark className="h-16 w-16 text-primary" />
+              <p className="font-script text-2xl md:text-[1.7rem] leading-snug text-primary">
+                Conectá con la naturaleza en cada detalle ♡
+              </p>
+            </div>
+            <div className="relative min-h-[240px] md:min-h-[300px]">
+              <img
+                src="/images/banner-vela.jpg"
+                alt="Vela de loto encendida con sahumerios"
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+            <div className="bg-primary p-8 md:p-10 flex flex-col items-start justify-center">
+              <LogoMark className="h-12 w-12 text-primary-foreground/90" />
+              <h2 className="font-display font-bold uppercase tracking-wide text-primary-foreground text-2xl md:text-[1.7rem] leading-tight mt-4">
+                Ofertas imperdibles
+              </h2>
+              <p className="text-primary-foreground/80 text-sm mt-2">
+                Productos seleccionados con los mejores precios.
+              </p>
+              <Link href="/catalogo?destacados=true" className="mt-6">
+                <span className="inline-flex items-center gap-2 bg-brand-clay text-primary rounded-full px-6 py-2.5 text-sm font-semibold hover:-translate-y-0.5 transition-all shadow-soft">
+                  Ver ofertas
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA banner */}
-      <section className="container mx-auto px-4 pb-14">
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-wave bg-mandala-tile-light p-8 md:p-14 text-center shadow-soft-lg">
-          <Mandala className="absolute -right-20 -bottom-20 h-72 w-72 text-primary-foreground sm:h-96 sm:w-96" />
-          <OrganicBlob className="absolute -right-28 -bottom-28 h-80 w-80 text-primary-foreground opacity-15" />
-          <Bloom className="absolute left-6 top-6 h-16 w-16 text-primary-foreground opacity-20 sm:left-10 sm:top-10 sm:h-24 sm:w-24" />
-          <Vine className="pointer-events-none absolute top-0 left-0 h-6 w-full text-primary-foreground opacity-[0.15] sm:h-8" />
-          <div className="relative">
-            <h2 className="text-3xl md:text-4xl font-display font-semibold tracking-tight text-primary-foreground">
-              ¿Buscás algo específico?
-            </h2>
-            <p className="text-primary-foreground/80 mt-3 max-w-xl mx-auto">
-              Explorá nuestro catálogo completo con una gran variedad de productos y rubros.
-            </p>
-            <Link href="/catalogo">
-              <button className="mt-7 inline-flex items-center gap-2 bg-background text-foreground rounded-full px-6 py-3 font-semibold hover:-translate-y-0.5 transition-all shadow-soft">
-                Ir al catálogo
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </Link>
-          </div>
+      {/* Beneficios */}
+      <section className="container mx-auto px-4 pb-12 md:pb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-8 lg:divide-x lg:divide-border">
+          {[
+            { icon: Truck, title: 'Envíos a todo el país', desc: 'Rápidos y seguros.' },
+            { icon: MapPin, title: 'Retiro en tienda', desc: 'Coordiná y pasá a buscar.' },
+            { icon: CreditCard, title: 'Medios de pago', desc: 'Tarjetas, transferencias y más.' },
+            { icon: Headphones, title: 'Atención personalizada', desc: 'Te ayudamos en lo que necesites.' },
+          ].map((f, i) => (
+            <div key={i} className="flex items-center gap-3 lg:justify-center lg:px-6 lg:first:pl-0 lg:last:pr-0">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <f.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                <p className="text-xs text-muted-foreground">{f.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </StoreLayout>

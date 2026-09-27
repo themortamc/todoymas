@@ -83,23 +83,23 @@ export const CATEGORY_ICON_OPTIONS: CategoryIconOption[] = [
 export const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> =
   Object.fromEntries(CATEGORY_ICON_OPTIONS.map((opt) => [opt.value, opt.Icon]));
 
-// Paleta de fondos pastel para chips/círculos de categoría (portada y
-// tarjetas de producto), inspirada en la identidad de marca. Se elige de
-// forma determinística según el id de categoría, así una misma categoría
-// siempre tiene el mismo color en todo el sitio.
+// Pasteles de marca para las manchas de categoría (portada) y los chips de
+// rubro (tarjetas de producto). Tonos calcados de los mockups de referencia:
+// rosa, arena, celeste grisáceo, lila, mostaza, salvia, terracota y gris
+// verdoso.
 export const CATEGORY_TINTS: { bg: string; fg: string }[] = [
-  { bg: '#F3DEE3', fg: '#8A4A5A' }, // rosa (belleza)
-  { bg: '#F3E6D0', fg: '#8A6A3A' }, // arena (hogar/bazar)
-  { bg: '#DCEAF0', fg: '#3A6A80' }, // celeste (pesca)
-  { bg: '#E7E1F3', fg: '#5A4A8A' }, // lila (electro)
-  { bg: '#F6E3C0', fg: '#8A5A1A' }, // mostaza (herramientas)
-  { bg: '#DCE9D8', fg: '#2E5D46' }, // salvia (camping/outdoor)
-  { bg: '#F0DCD4', fg: '#8A4A2E' }, // terracota
-  { bg: '#E0E5DC', fg: '#4A5A44' }, // gris verdoso
+  { bg: '#F0BFC2', fg: '#8A4A5A' }, // rosa (belleza)
+  { bg: '#F2D6A8', fg: '#8A6A3A' }, // arena (hogar/bazar)
+  { bg: '#A9CBCB', fg: '#2F5A5A' }, // celeste (pesca)
+  { bg: '#C3B5D9', fg: '#4A3A7A' }, // lila (electro)
+  { bg: '#F0C778', fg: '#7A4E14' }, // mostaza (herramientas)
+  { bg: '#A9C7A2', fg: '#2E5D46' }, // salvia (camping/outdoor)
+  { bg: '#EABF9F', fg: '#8A4A2E' }, // terracota
+  { bg: '#B9C2B2', fg: '#3F4A3A' }, // gris verdoso
 ];
 
-// Algunas categorías tienen un tono "de autor" fijo, calcado del manual de
-// marca (belleza=rosa, hogar=arena, pesca=celeste, electro=lila,
+// Algunas categorías tienen un tono \"de autor\" fijo, calcado de los mockups
+// (belleza=rosa, hogar=arena, pesca=celeste, electro=lila,
 // herramientas=mostaza, camping/outdoor=salvia). El resto de los íconos cae
 // a una asignación determinística por tipo de ícono (no por id de categoría),
 // así dos categorías con el mismo ícono siempre comparten color.
@@ -122,11 +122,57 @@ export function tintForCategory(idOrIcon: string | null | undefined) {
   return CATEGORY_TINTS[hash % CATEGORY_TINTS.length];
 }
 
-// Elige una de las 3 formas de "mancha pintada" (PaintedBlob) de forma
+// Elige una de las 3 formas de \"mancha pintada\" (PaintedBlob) de forma
 // determinística por categoría, así el mismo rubro siempre se ve igual.
 export function blobVariantForCategory(id: string | null | undefined) {
   if (!id) return 0;
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 17 + id.charCodeAt(i)) >>> 0;
   return hash % 3;
+}
+
+// Bajada descriptiva de cada rubro, calcada de los mockups de referencia
+// (\"Belleza / Cuidado personal y cosmética\", etc.). Se muestra debajo del
+// nombre en la fila de categorías de la portada.
+const ICON_SUBTITLE: Record<string, string> = {
+  Flower2: 'Cuidado personal y cosmética',
+  Scissors: 'Peluquería y cuidado',
+  Droplet: 'Perfumería y aromas',
+  Home: 'Organizá tu espacio',
+  Gift: 'Regalos y más',
+  Sparkles: 'Novedades y regalos',
+  Fish: 'Tu próxima aventura',
+  Umbrella: 'Aire libre',
+  Plug: 'Tecnología para vos',
+  Cpu: 'Tecnología para vos',
+  Watch: 'Accesorios',
+  Glasses: 'Accesorios',
+  Drill: 'Hacé que pase',
+  Wrench: 'Hacé que pase',
+  Hammer: 'Hacé que pase',
+  Mountain: 'Outdoor y mucho más',
+  Tent: 'Outdoor y mucho más',
+  Dumbbell: 'Deporte y aire libre',
+  Car: 'Para tu auto',
+  Shirt: 'Vestite bien',
+  Baby: 'Para los más chicos',
+  BabyIcon: 'Para los más chicos',
+  Camera: 'Capturá momentos',
+  Palette: 'Arte y creatividad',
+  Paintbrush: 'Arte y creatividad',
+  Music: 'Música y sonido',
+  BookOpen: 'Librería y más',
+  Utensils: 'Todo para tu cocina',
+  Wine: 'Para brindar',
+  Dog: 'Para tus mascotas',
+  PawPrint: 'Para tus mascotas',
+  Flame: 'Aromas y velas',
+  Leaf: 'Lo natural',
+  Gamepad2: 'Juegos y diversión',
+  Package: 'Un poco de todo',
+};
+
+export function subtitleForCategory(icon: string | null | undefined) {
+  if (!icon) return '';
+  return ICON_SUBTITLE[icon] ?? '';
 }
