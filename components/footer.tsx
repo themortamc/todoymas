@@ -6,7 +6,7 @@ import { Phone, MapPin, Instagram, Facebook, CreditCard, Landmark, Wallet, Heart
 import { supabase, type Category } from '@/lib/supabase';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { TikTokIcon } from '@/components/icons/tiktok-icon';
-import { LeafScatter, LeafSprig, Bloom, Vine, Mandala, LogoMark } from '@/components/decorative-plants';
+import { LeafScatter, LeafSprig, Bloom, Vine, LogoMark } from '@/components/decorative-plants';
 import { WHATSAPP_URL, WHATSAPP_CHANNEL_URL, INSTAGRAM_URL, TIKTOK_URL, FACEBOOK_URL } from '@/lib/contact';
 
 export function Footer() {
@@ -28,7 +28,6 @@ export function Footer() {
   return (
     <footer className="relative overflow-hidden bg-footer bg-mandala-tile-light text-footer-foreground mt-16">
       <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary opacity-70" />
-      <Mandala className="pointer-events-none absolute -left-16 -bottom-24 h-80 w-80 text-primary-foreground hidden md:block" />
       <LeafScatter className="absolute -right-10 -top-10 h-44 w-44 text-primary opacity-20 sm:-right-16 sm:-top-16 sm:h-72 sm:w-72" />
       <LeafSprig className="absolute -bottom-6 left-3 h-28 w-16 text-primary opacity-15 sm:-bottom-8 sm:left-8 sm:h-40 sm:w-24" />
       <LeafSprig className="absolute -bottom-4 right-6 h-20 w-12 text-accent opacity-15 rotate-[200deg] sm:hidden" />

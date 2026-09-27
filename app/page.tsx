@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Truck, ShieldCheck, Store, Headphones } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { ProductCard } from '@/components/product-card';
-import { OrganicBlob, LeafScatter, LeafSprig, Vine, Bloom, Mandala } from '@/components/decorative-plants';
+import { OrganicBlob, LeafScatter, LeafSprig, Vine, Bloom, LogoMark } from '@/components/decorative-plants';
 import { supabase, type Product, type Category } from '@/lib/supabase';
 import { Home } from 'lucide-react';
 import { CATEGORY_ICON_MAP as iconMap, tintForCategory, blobVariantForCategory } from '@/lib/category-icons';
@@ -47,50 +47,30 @@ export default function HomePage() {
     <StoreLayout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-grain">
-        <div className="grid lg:grid-cols-2 items-stretch">
-          {/* Columna de texto */}
-          <div className="order-2 lg:order-1 px-4 sm:px-6 lg:pl-12 xl:pl-20 lg:pr-10 relative z-10 overflow-hidden">
-            <Mandala className="pointer-events-none absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 h-64 w-64 md:h-80 md:w-80 text-primary" />
-            <LeafScatter className="pointer-events-none absolute left-1 top-1 h-20 w-20 sm:h-32 sm:w-32 text-primary opacity-80" />
-            <Bloom className="pointer-events-none absolute left-2 bottom-6 h-14 w-14 sm:h-20 sm:w-20 text-brand-clay opacity-40" />
-            <div className="text-center lg:text-left py-14 md:py-20 relative">
-              <p className="font-script text-xl md:text-2xl text-accent-ink">Todo lo que necesitás...</p>
-              <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-primary drop-shadow-sm mt-1">
-                Todo y Más
-              </h1>
-              <p className="text-2xl md:text-3xl font-display text-foreground/80 mt-1">en un solo lugar ♡</p>
-              <p className="text-sm md:text-base font-medium text-muted-foreground mt-5 tracking-wide">
-                Belleza · Bazar &amp; Hogar · Pesca · Electro · Herramientas · Más
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center lg:justify-start">
-                <Link href="/catalogo">
-                  <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-8 py-3 font-semibold shadow-soft hover:shadow-soft-md hover:-translate-y-0.5 transition-all">
-                    Ver productos
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </Link>
-                <Link href="/catalogo?destacados=true">
-                  <button className="inline-flex items-center gap-2 bg-background border border-foreground/70 rounded-full px-8 py-3 font-semibold hover:bg-secondary hover:-translate-y-0.5 transition-all">
-                    Ver más
-                  </button>
-                </Link>
-              </div>
-            </div>
+        <div className="container mx-auto px-4 py-16 md:py-24 text-center relative">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 text-primary">
+            <LogoMark className="h-11 w-11" />
           </div>
-
-          {/* Columna de foto: paisaje + mochila/termo (los productos que la clienta pidió que se vean).
-              Va primero en mobile (order-1) para que no quede relegada al final del scroll. */}
-          <div className="order-1 lg:order-2 relative h-64 sm:h-96 lg:h-auto lg:min-h-[420px] overflow-hidden rounded-b-[2.5rem] lg:rounded-b-none lg:rounded-l-[4rem]">
-            <img
-              src="/images/hero-mochila.jpg"
-              alt="Paisaje de montaña y lago con mochila y termo de camping"
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
-            />
-            <Mandala className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-background opacity-60" />
-            <p className="font-script text-lg md:text-xl text-background drop-shadow-md absolute top-6 right-6 md:top-10 md:right-10 text-right leading-tight">
-              Lo esencial, lo útil,<br />lo que te gusta... ♡
-            </p>
+          <p className="font-script text-xl md:text-2xl text-accent-ink">Todo lo que necesitás...</p>
+          <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-primary drop-shadow-sm mt-1">
+            Todo y Más
+          </h1>
+          <p className="text-2xl md:text-3xl font-display text-foreground/80 mt-1">en un solo lugar ♡</p>
+          <p className="text-sm md:text-base font-medium text-muted-foreground mt-5 tracking-wide">
+            Belleza · Bazar &amp; Hogar · Pesca · Electro · Herramientas · Más
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
+            <Link href="/catalogo">
+              <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-8 py-3 font-semibold shadow-soft hover:shadow-soft-md hover:-translate-y-0.5 transition-all">
+                Ver productos
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </Link>
+            <Link href="/catalogo?destacados=true">
+              <button className="inline-flex items-center gap-2 bg-background border border-foreground/70 rounded-full px-8 py-3 font-semibold hover:bg-secondary hover:-translate-y-0.5 transition-all">
+                Ver más
+              </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -125,9 +105,6 @@ export default function HomePage() {
       {/* Categories */}
       <section className="relative overflow-hidden bg-mandala-tile bg-secondary/20">
        <div className="container mx-auto px-4 py-14 relative">
-        <Mandala className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-brand-stone sm:h-96 sm:w-96" />
-        <LeafSprig className="pointer-events-none absolute -top-4 -left-2 h-24 w-14 text-primary opacity-[0.09] -rotate-12 sm:h-36 sm:w-20" />
-        <Bloom className="pointer-events-none absolute -bottom-6 right-2 h-20 w-20 text-accent opacity-[0.12] sm:h-28 sm:w-28" />
         <div className="flex items-center justify-between mb-6 relative">
           <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight">Explorá por categorías</h2>
           <Link href="/catalogo" className="text-sm font-medium text-primary hover:underline">
@@ -202,7 +179,6 @@ export default function HomePage() {
             </p>
           </div>
           <div className="relative overflow-hidden rounded-[2rem] bg-secondary p-8 md:p-10 flex flex-col justify-center shadow-soft-lg">
-            <Mandala className="pointer-events-none absolute -right-10 -bottom-10 h-48 w-48 text-primary" />
             <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-primary relative">
               Ofertas imperdibles
             </h2>
@@ -222,7 +198,6 @@ export default function HomePage() {
       {/* CTA banner */}
       <section className="container mx-auto px-4 pb-14">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-wave bg-mandala-tile-light p-8 md:p-14 text-center shadow-soft-lg">
-          <Mandala className="absolute -right-20 -bottom-20 h-72 w-72 text-primary-foreground sm:h-96 sm:w-96" />
           <OrganicBlob className="absolute -right-28 -bottom-28 h-80 w-80 text-primary-foreground opacity-15" />
           <Bloom className="absolute left-6 top-6 h-16 w-16 text-primary-foreground opacity-20 sm:left-10 sm:top-10 sm:h-24 sm:w-24" />
           <Vine className="pointer-events-none absolute top-0 left-0 h-6 w-full text-primary-foreground opacity-[0.15] sm:h-8" />
