@@ -28,7 +28,7 @@ export function ProductCard({
   const [imgError, setImgError] = useState(false);
 
   const category = product.category_id ? categoryMap?.[product.category_id] : undefined;
-  const tint = tintForCategory(product.category_id);
+  const tint = tintForCategory(category?.icon ?? product.category_id);
   const favorite = isFavorite(product.id);
 
   return (

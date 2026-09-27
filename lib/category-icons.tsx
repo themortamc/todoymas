@@ -98,10 +98,27 @@ export const CATEGORY_TINTS: { bg: string; fg: string }[] = [
   { bg: '#E0E5DC', fg: '#4A5A44' }, // gris verdoso
 ];
 
-export function tintForCategory(id: string | null | undefined) {
-  if (!id) return CATEGORY_TINTS[CATEGORY_TINTS.length - 1];
+// Algunas categorías tienen un tono "de autor" fijo, calcado del manual de
+// marca (belleza=rosa, hogar=arena, pesca=celeste, electro=lila,
+// herramientas=mostaza, camping/outdoor=salvia). El resto de los íconos cae
+// a una asignación determinística por tipo de ícono (no por id de categoría),
+// así dos categorías con el mismo ícono siempre comparten color.
+const ICON_TINT_INDEX: Record<string, number> = {
+  Flower2: 0, Scissors: 0,
+  Home: 1, Gift: 1, Sparkles: 1,
+  Fish: 2, Umbrella: 2,
+  Plug: 3, Cpu: 3, Watch: 3, Glasses: 3,
+  Drill: 4, Wrench: 4, Hammer: 4,
+  Mountain: 5, Tent: 5, Dumbbell: 5, Car: 5,
+  Shirt: 6, BabyIcon: 6, Baby: 6,
+  Camera: 7, Palette: 7, Paintbrush: 7, Music: 7, BookOpen: 7,
+};
+
+export function tintForCategory(idOrIcon: string | null | undefined) {
+  if (!idOrIcon) return CATEGORY_TINTS[CATEGORY_TINTS.length - 1];
+  if (idOrIcon in ICON_TINT_INDEX) return CATEGORY_TINTS[ICON_TINT_INDEX[idOrIcon]];
   let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < idOrIcon.length; i++) hash = (hash * 31 + idOrIcon.charCodeAt(i)) >>> 0;
   return CATEGORY_TINTS[hash % CATEGORY_TINTS.length];
 }
 

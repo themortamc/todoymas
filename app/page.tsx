@@ -48,10 +48,10 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-grain">
         <Mandala className="pointer-events-none absolute -left-32 bottom-[-8rem] h-72 w-72 text-brand-sage opacity-[0.14] hidden sm:block sm:h-96 sm:w-96 z-10" />
-        <div className="grid lg:grid-cols-2 items-stretch">
-          {/* Columna de texto */}
-          <div className="container mx-auto px-4 lg:pr-8 relative z-10">
-            <div className="text-center lg:text-left py-14 md:py-20">
+        <div className="container mx-auto px-4 relative">
+          <div className="grid lg:grid-cols-2 gap-10 items-center py-14 md:py-20">
+            {/* Columna de texto */}
+            <div className="text-center lg:text-left relative z-10">
               <p className="font-script text-xl md:text-2xl text-accent-ink">Todo lo que necesitás...</p>
               <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-primary drop-shadow-sm mt-1">
                 Todo y Más
@@ -74,26 +74,26 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-          </div>
 
-          {/* Columna de foto: a sangre completa contra el borde derecho */}
-          <div className="relative h-72 sm:h-96 lg:h-auto lg:min-h-[420px] overflow-hidden rounded-l-[3rem] lg:rounded-l-[4rem]">
-            <img
-              src="https://images.unsplash.com/photo-1600672196900-c98c011a0977?auto=format&fit=crop&w=1400&q=80"
-              alt="Paisaje de montaña y lago"
-              className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
-            />
-            <Mandala className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-background opacity-60" />
-            <Mandala className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 text-background opacity-30 hidden sm:block" />
-            <p className="font-script text-lg md:text-xl text-background drop-shadow-md absolute top-6 right-6 md:top-10 md:right-10 text-right leading-tight">
-              Lo esencial, lo útil,<br />lo que te gusta... ♡
-            </p>
+            {/* Columna de foto: blob orgánico "abrazado" por mandala y hojas, como la Variante 2 */}
+            <div className="relative flex items-center justify-center py-6">
+              <Mandala className="pointer-events-none absolute h-72 w-72 sm:h-96 sm:w-96 text-brand-sage opacity-25" />
+              <LeafScatter className="pointer-events-none absolute -left-4 -top-4 h-24 w-24 sm:h-36 sm:w-36 text-primary opacity-80 z-20" />
+              <LeafSprig className="pointer-events-none absolute -right-2 -bottom-6 h-28 w-16 sm:h-40 sm:w-24 text-primary opacity-70 z-20" />
+              <div className="relative h-64 w-64 sm:h-80 sm:w-80 overflow-hidden shadow-soft-lg rounded-[63%_37%_54%_46%/55%_45%_55%_45%] border-4 border-background z-10">
+                <img
+                  src="/images/hero-piedras.jpg"
+                  alt="Piedras apiladas junto a un lago de montaña"
+                  className="h-full w-full object-cover"
+                  loading="eager"
+                />
+              </div>
+              <p className="font-script text-lg md:text-xl text-accent-ink absolute -right-2 sm:right-2 bottom-2 sm:bottom-8 max-w-[9rem] text-center leading-tight z-20 hidden sm:block">
+                Lo esencial, lo útil, lo que te gusta... ♡
+              </p>
+            </div>
           </div>
         </div>
-        {/* Hojas que cruzan la costura entre el panel de texto y la foto */}
-        <LeafScatter className="pointer-events-none absolute -left-6 -top-6 h-28 w-28 text-primary opacity-70 sm:left-4 sm:top-4 sm:h-48 sm:w-48 z-10" />
-        <Bloom className="pointer-events-none absolute left-4 bottom-8 h-16 w-16 text-brand-clay opacity-40 sm:left-10 sm:bottom-14 sm:h-24 sm:w-24 z-10" />
       </section>
 
       {/* Features bar */}
@@ -138,7 +138,7 @@ export default function HomePage() {
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-8 relative">
           {categories.map((cat) => {
             const Icon = cat.icon ? iconMap[cat.icon] : Home;
-            const palette = tintForCategory(cat.id);
+            const palette = tintForCategory(cat.icon ?? cat.id);
             const blobVariant = blobVariantForCategory(cat.id);
             return (
               <Link
@@ -192,14 +192,14 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="relative overflow-hidden rounded-[2rem] min-h-[220px] flex items-end p-8 shadow-soft-lg">
             <img
-              src="https://images.unsplash.com/photo-1649519605812-400ba1767985?auto=format&fit=crop&w=1200&q=80"
-              alt="Carpa iluminada de noche bajo las estrellas"
+              src="/images/banner-vela.jpg"
+              alt="Vela encendida junto a piedras decorativas"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <p className="font-script text-2xl md:text-3xl text-primary-foreground leading-tight relative">
-              Viví la experiencia de estar afuera ♡
+              Conectá con la naturaleza en cada detalle ♡
             </p>
           </div>
           <div className="relative overflow-hidden rounded-[2rem] bg-secondary p-8 md:p-10 flex flex-col justify-center shadow-soft-lg">
