@@ -47,11 +47,13 @@ export default function HomePage() {
     <StoreLayout>
       {/* Hero */}
       <section className="relative overflow-hidden bg-grain">
-        <Mandala className="pointer-events-none absolute -left-32 bottom-[-8rem] h-72 w-72 text-brand-sage opacity-[0.14] hidden sm:block sm:h-96 sm:w-96 z-10" />
         <div className="grid lg:grid-cols-2 items-stretch">
           {/* Columna de texto */}
-          <div className="container mx-auto px-4 lg:pr-8 relative z-10">
-            <div className="text-center lg:text-left py-14 md:py-20">
+          <div className="order-2 lg:order-1 px-4 sm:px-6 lg:pl-12 xl:pl-20 lg:pr-10 relative z-10 overflow-hidden">
+            <Mandala className="pointer-events-none absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 h-64 w-64 md:h-80 md:w-80 text-brand-clay opacity-[0.14]" />
+            <LeafScatter className="pointer-events-none absolute left-1 top-1 h-20 w-20 sm:h-32 sm:w-32 text-primary opacity-80" />
+            <Bloom className="pointer-events-none absolute left-2 bottom-6 h-14 w-14 sm:h-20 sm:w-20 text-brand-clay opacity-40" />
+            <div className="text-center lg:text-left py-14 md:py-20 relative">
               <p className="font-script text-xl md:text-2xl text-accent-ink">Todo lo que necesitás...</p>
               <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-primary drop-shadow-sm mt-1">
                 Todo y Más
@@ -76,8 +78,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Columna de foto: paisaje + mochila/termo (los productos que la clienta pidió que se vean) */}
-          <div className="relative h-72 sm:h-96 lg:h-auto lg:min-h-[420px] overflow-hidden rounded-l-[3rem] lg:rounded-l-[4rem]">
+          {/* Columna de foto: paisaje + mochila/termo (los productos que la clienta pidió que se vean).
+              Va primero en mobile (order-1) para que no quede relegada al final del scroll. */}
+          <div className="order-1 lg:order-2 relative h-64 sm:h-96 lg:h-auto lg:min-h-[420px] overflow-hidden rounded-b-[2.5rem] lg:rounded-b-none lg:rounded-l-[4rem]">
             <img
               src="/images/hero-mochila.jpg"
               alt="Paisaje de montaña y lago con mochila y termo de camping"
@@ -90,9 +93,6 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        {/* Hojas que cruzan la costura entre el panel de texto y la foto */}
-        <LeafScatter className="pointer-events-none absolute -left-6 -top-6 h-28 w-28 text-primary opacity-70 sm:left-4 sm:top-4 sm:h-48 sm:w-48 z-10" />
-        <Bloom className="pointer-events-none absolute left-4 bottom-8 h-16 w-16 text-brand-clay opacity-40 sm:left-10 sm:bottom-14 sm:h-24 sm:w-24 z-10" />
       </section>
 
       {/* Features bar */}
