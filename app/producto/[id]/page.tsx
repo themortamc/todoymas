@@ -182,7 +182,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   return (
     <StoreLayout>
       <div className="relative overflow-hidden">
-        <Mandala className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 text-brand-clay opacity-[0.06] hidden lg:block" />
+        <Mandala className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 text-primary hidden lg:block" />
         <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-20 w-12 text-primary opacity-[0.08] rotate-12 sm:-top-6 sm:right-6 sm:h-32 sm:w-20" />
         <Bloom className="pointer-events-none absolute -bottom-8 -left-4 h-24 w-24 text-accent opacity-[0.07] hidden md:block" />
         <div className="container mx-auto px-4 py-8 relative">

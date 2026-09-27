@@ -50,7 +50,7 @@ export default function HomePage() {
         <div className="grid lg:grid-cols-2 items-stretch">
           {/* Columna de texto */}
           <div className="order-2 lg:order-1 px-4 sm:px-6 lg:pl-12 xl:pl-20 lg:pr-10 relative z-10 overflow-hidden">
-            <Mandala className="pointer-events-none absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 h-64 w-64 md:h-80 md:w-80 text-brand-clay opacity-[0.14]" />
+            <Mandala className="pointer-events-none absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 h-64 w-64 md:h-80 md:w-80 text-primary" />
             <LeafScatter className="pointer-events-none absolute left-1 top-1 h-20 w-20 sm:h-32 sm:w-32 text-primary opacity-80" />
             <Bloom className="pointer-events-none absolute left-2 bottom-6 h-14 w-14 sm:h-20 sm:w-20 text-brand-clay opacity-40" />
             <div className="text-center lg:text-left py-14 md:py-20 relative">
@@ -125,7 +125,7 @@ export default function HomePage() {
       {/* Categories */}
       <section className="relative overflow-hidden bg-mandala-tile bg-secondary/20">
        <div className="container mx-auto px-4 py-14 relative">
-        <Mandala className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-brand-stone opacity-[0.08] sm:h-96 sm:w-96" />
+        <Mandala className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-brand-stone sm:h-96 sm:w-96" />
         <LeafSprig className="pointer-events-none absolute -top-4 -left-2 h-24 w-14 text-primary opacity-[0.09] -rotate-12 sm:h-36 sm:w-20" />
         <Bloom className="pointer-events-none absolute -bottom-6 right-2 h-20 w-20 text-accent opacity-[0.12] sm:h-28 sm:w-28" />
         <div className="flex items-center justify-between mb-6 relative">
@@ -202,7 +202,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="relative overflow-hidden rounded-[2rem] bg-secondary p-8 md:p-10 flex flex-col justify-center shadow-soft-lg">
-            <Mandala className="pointer-events-none absolute -right-10 -bottom-10 h-48 w-48 text-primary opacity-[0.12]" />
+            <Mandala className="pointer-events-none absolute -right-10 -bottom-10 h-48 w-48 text-primary" />
             <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight text-primary relative">
               Ofertas imperdibles
             </h2>
@@ -222,7 +222,7 @@ export default function HomePage() {
       {/* CTA banner */}
       <section className="container mx-auto px-4 pb-14">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-wave bg-mandala-tile-light p-8 md:p-14 text-center shadow-soft-lg">
-          <Mandala className="absolute -right-20 -bottom-20 h-72 w-72 text-primary-foreground opacity-[0.1] sm:h-96 sm:w-96" />
+          <Mandala className="absolute -right-20 -bottom-20 h-72 w-72 text-primary-foreground sm:h-96 sm:w-96" />
           <OrganicBlob className="absolute -right-28 -bottom-28 h-80 w-80 text-primary-foreground opacity-15" />
           <Bloom className="absolute left-6 top-6 h-16 w-16 text-primary-foreground opacity-20 sm:left-10 sm:top-10 sm:h-24 sm:w-24" />
           <Vine className="pointer-events-none absolute top-0 left-0 h-6 w-full text-primary-foreground opacity-[0.15] sm:h-8" />
