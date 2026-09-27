@@ -271,7 +271,7 @@ function CatalogContent() {
 
   return (
     <StoreLayout>
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-grain bg-brand-sand/45">
         <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-24 w-14 text-primary opacity-[0.1] rotate-12 sm:-top-6 sm:right-6 sm:h-40 sm:w-24" />
         <LeafSprig className="pointer-events-none absolute -bottom-4 -left-2 h-24 w-14 text-accent opacity-[0.08] -rotate-[20deg] sm:-bottom-6 sm:-left-3 sm:h-32 sm:w-20 md:h-40 md:w-24" />
         <Bloom className="pointer-events-none absolute right-1/3 -bottom-8 h-20 w-20 text-primary opacity-[0.06] hidden md:block" />

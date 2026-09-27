@@ -207,6 +207,59 @@ export function PaintedBlob({
   );
 }
 
+// Mandala de línea fina, como el del manual de marca: solo contornos, para
+// fondos grandes donde <Mandala> (con pétalos rellenos) resultaría pesado.
+export function MandalaLine({ className }: { className?: string }) {
+  const ring = (r: number, rx: number, ry: number, count: number, opacity: number) => {
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      const angle = (360 / count) * i;
+      items.push(
+        <ellipse
+          key={`${r}-${i}`}
+          cx="200"
+          cy={200 - r}
+          rx={rx}
+          ry={ry}
+          opacity={opacity}
+          transform={`rotate(${angle} 200 200)`}
+        />
+      );
+    }
+    return items;
+  };
+
+  return (
+    <svg viewBox="0 0 400 400" className={className} fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true">
+      <circle cx="200" cy="200" r="196" opacity="0.5" />
+      <circle cx="200" cy="200" r="168" opacity="0.45" />
+      <circle cx="200" cy="200" r="74" opacity="0.5" />
+      <circle cx="200" cy="200" r="30" opacity="0.55" />
+      <g>{ring(150, 13, 30, 16, 0.5)}</g>
+      <g>{ring(108, 11, 24, 12, 0.55)}</g>
+      <g>{ring(56, 8, 16, 8, 0.6)}</g>
+      <circle cx="200" cy="200" r="9" opacity="0.6" />
+    </svg>
+  );
+}
+
+// Paisaje de línea (montañas, sol y agua) calcado del manual de marca
+// ("estilo de ilustraciones"). Pensado como acento de fondo en paneles
+// claros: hero, banner de naturaleza. Hereda color vía currentColor.
+export function MountainLine({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 320 140" className={className} fill="none" aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="252" cy="34" r="16" opacity="0.55" />
+        <path d="M6 116 74 40l30 34 22-24 44 66Z" opacity="0.75" />
+        <path d="M112 116 156 62l22 24 18-16 34 46Z" opacity="0.5" />
+        <path d="M28 126c30-6 60-6 90 0s60 6 90 0 60-6 96 0" opacity="0.4" strokeWidth="1.2" />
+        <path d="M40 134c30-5 60-5 90 0s60 5 90 0" opacity="0.25" strokeWidth="1.2" />
+      </g>
+    </svg>
+  );
+}
+
 // Ramita de eucalipto: tallo curvado con hojas ovaladas redondeadas,
 // calcada de las ilustraciones del manual de marca. Se usa en los bordes
 // de las secciones grandes (hero, categorías, banner). Hereda color vía

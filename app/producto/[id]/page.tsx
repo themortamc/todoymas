@@ -181,7 +181,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   return (
     <StoreLayout>
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-grain bg-brand-sand/45">
         <LeafSprig className="pointer-events-none absolute -top-3 right-2 h-20 w-12 text-primary opacity-[0.08] rotate-12 sm:-top-6 sm:right-6 sm:h-32 sm:w-20" />
         <Bloom className="pointer-events-none absolute -bottom-8 -left-4 h-24 w-24 text-accent opacity-[0.07] hidden md:block" />
         <div className="container mx-auto px-4 py-8 relative">

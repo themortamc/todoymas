@@ -6,7 +6,7 @@ import { Phone, MapPin, Instagram, Facebook, CreditCard, Landmark, Wallet } from
 import { supabase, type Category } from '@/lib/supabase';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { TikTokIcon } from '@/components/icons/tiktok-icon';
-import { LogoMark } from '@/components/decorative-plants';
+import { LogoMark, MandalaLine, LeafBranch } from '@/components/decorative-plants';
 import { WHATSAPP_URL, WHATSAPP_CHANNEL_URL, INSTAGRAM_URL, TIKTOK_URL, FACEBOOK_URL } from '@/lib/contact';
 
 export function Footer() {
@@ -41,7 +41,10 @@ export function Footer() {
           />
         </svg>
       </div>
-      <div className="bg-footer text-footer-foreground">
+      <div className="relative overflow-hidden bg-footer bg-grain bg-mandala-tile-light text-footer-foreground">
+        <MandalaLine className="pointer-events-none absolute -left-28 -top-32 h-80 w-80 text-footer-foreground/25" />
+        <MandalaLine className="pointer-events-none absolute -bottom-36 right-1/3 h-72 w-72 text-footer-foreground/20" />
+        <LeafBranch className="pointer-events-none absolute -right-4 top-6 h-56 w-auto text-footer-foreground/20 hidden lg:block -scale-x-100 rotate-12" />
         <div className="container mx-auto px-4 pb-8 pt-4 relative">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-3">
