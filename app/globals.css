@@ -68,6 +68,10 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: clip;
+    /* Textura de papel muy sutil en todo el sitio: evita que las zonas sin
+       contenido (páginas cortas, estados vacíos) se vean planas. Las
+       secciones con color propio la tapan, así que no compite con ellas. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.53 0 0 0 0 0.56 0 0 0 0 0.52 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
@@ -106,19 +110,19 @@
   }
   /* Patrón de hojas repetido (swatch "hojas" de texturas/fondos). */
   .bg-leaf-tile {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.4' opacity='0.16'%3E%3Cpath d='M20 100c8-30 30-48 58-46-4 30-28 50-58 46Z'/%3E%3Cpath d='M26 96c14-22 34-34 50-32'/%3E%3C/g%3E%3Cg fill='none' stroke='%23C9A87A' stroke-width='1.2' opacity='0.14' transform='translate(60 10) rotate(160)'%3E%3Cpath d='M10 50c4-15 15-24 29-23-2 15-14 25-29 23Z'/%3E%3Cpath d='M13 48c7-11 17-17 25-16'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1.4' opacity='0.07'%3E%3Cpath d='M20 100c8-30 30-48 58-46-4 30-28 50-58 46Z'/%3E%3Cpath d='M26 96c14-22 34-34 50-32'/%3E%3C/g%3E%3Cg fill='none' stroke='%23C9A87A' stroke-width='1.2' opacity='0.06' transform='translate(60 10) rotate(160)'%3E%3Cpath d='M10 50c4-15 15-24 29-23-2 15-14 25-29 23Z'/%3E%3Cpath d='M13 48c7-11 17-17 25-16'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 120px 120px;
   }
   /* Patrón de mandala repetido en cuadrícula (swatch "mandala" de
      texturas/fondos). */
   .bg-mandala-tile {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1' opacity='0.12' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%232E5D46' stroke-width='1' opacity='0.055' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-size: 160px 160px;
   }
   /* Misma trama de mandala pero en trazo claro, para usar sobre fondos
      oscuros (footer, banner CTA) donde el trazo verde oscuro no se vería. */
   .bg-mandala-tile-light {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23FAF9F6' stroke-width='1' opacity='0.08' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23FAF9F6' stroke-width='1' opacity='0.06' transform='translate(80 80)'%3E%3Ccircle r='58'/%3E%3Ccircle r='40'/%3E%3Ccircle r='14'/%3E%3Cg%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(45)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(90)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(135)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(180)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(225)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(270)'/%3E%3Cellipse cx='0' cy='-50' rx='5' ry='13' transform='rotate(315)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     background-size: 160px 160px;
   }
   /* Degradado diagonal verde (swatch de textura verde del manual), para

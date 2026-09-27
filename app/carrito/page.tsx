@@ -14,7 +14,7 @@ export default function CartPage() {
 
   return (
     <StoreLayout>
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden bg-grain bg-brand-sand/45">
         <LeafSprig className="pointer-events-none absolute -top-4 -left-2 h-24 w-14 text-accent opacity-[0.09] sm:-top-8 sm:-left-4 sm:h-44 sm:w-28" />
         <Bloom className="pointer-events-none absolute -bottom-6 right-2 h-20 w-20 text-primary opacity-[0.07] sm:right-8 sm:h-28 sm:w-28" />
       <div className="container mx-auto px-4 py-8 relative">
