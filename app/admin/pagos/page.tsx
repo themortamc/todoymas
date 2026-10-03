@@ -2,10 +2,13 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle2, ExternalLink, Loader2, Unlink, XCircle } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Loader2, Percent, Save, Unlink, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 const MP_ERROR_MESSAGES: Record<string, string> = {
   cancelado: 'Cancelaste la conexión con Mercado Pago.',
@@ -15,6 +18,135 @@ const MP_ERROR_MESSAGES: Record<string, string> = {
   token_fallo: 'Mercado Pago rechazó la conexión. Probá de nuevo.',
   inesperado: 'Ocurrió un error inesperado al conectar. Probá de nuevo.',
 };
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  mercadopago: 'Mercado Pago (tarjetas de crédito y débito)',
+  gocuotas: 'GoCuotas',
+  transferencia: 'Transferencia bancaria',
+  efectivo: 'Efectivo',
+};
+
+function SurchargesCard() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const [rows, setRows] = useState<{ payment_method: string; surcharge_percent: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('payment_surcharges')
+      .select('payment_method, surcharge_percent')
+      .order('payment_method');
+    if (!error && data) setRows(data as { payment_method: string; surcharge_percent: number }[]);
+    setLoading(false);
+  }
+
+  function updateValue(method: string, value: string) {
+    const num = value === '' ? 0 : Number(value);
+    if (Number.isNaN(num)) return;
+    setRows((prev) => prev.map((r) => (r.payment_method === method ? { ...r, surcharge_percent: num } : r)));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setNotice(null);
+    setErrorMsg(null);
+    try {
+      for (const row of rows) {
+        const { error } = await supabase
+          .from('payment_surcharges')
+          .update({ surcharge_percent: row.surcharge_percent, updated_at: new Date().toISOString() })
+          .eq('payment_method', row.payment_method);
+        if (error) throw error;
+      }
+      setNotice('Recargos actualizados. Van a aplicarse desde el próximo pedido.');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'No pudimos guardar los recargos.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Percent className="h-5 w-5" />
+          Recargos por método de pago
+        </CardTitle>
+        <CardDescription>
+          Se suman automáticamente al total del pedido según el método que elija el cliente en el checkout. Poné 0 para no cobrar recargo.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {notice && (
+          <div className="rounded-lg border border-green-600/30 bg-green-600/10 text-green-700 dark:text-green-400 px-4 py-2 text-sm">
+            {notice}
+          </div>
+        )}
+        {errorMsg && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 text-destructive px-4 py-2 text-sm">
+            {errorMsg}
+          </div>
+        )}
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {rows.map((row) => (
+                <div key={row.payment_method} className="flex items-center justify-between gap-4">
+                  <Label className="flex-1 font-normal">
+                    {PAYMENT_METHOD_LABELS[row.payment_method] || row.payment_method}
+                  </Label>
+                  <div className="relative w-28 shrink-0">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      disabled={!isAdmin}
+                      value={row.surcharge_percent}
+                      onChange={(e) => updateValue(row.payment_method, e.target.value)}
+                      className="pr-7"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {isAdmin ? (
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Guardar recargos
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">Solo un administrador puede cambiar los recargos.</p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function PagosContent() {
   const { session } = useAuth();
@@ -185,6 +317,8 @@ function PagosContent() {
           )}
         </CardContent>
       </Card>
+
+      <SurchargesCard />
     </div>
   );
 }

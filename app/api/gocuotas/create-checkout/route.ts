@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerEnv } from '@/lib/server/env';
+import { supabase } from '@/lib/supabase';
 
 // GoCuotas "API Redirect V1" - https://www.gocuotas.com/api_redirect_docs
 // Flow: 1) authenticate with email/password to get a token, 2) create a
@@ -9,9 +10,17 @@ import { getServerEnv } from '@/lib/server/env';
 
 const GOCUOTAS_BASE_URL = 'https://www.gocuotas.com/api_redirect/v1';
 
+interface OrderItemInput {
+  product_id?: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 interface CreateCheckoutBody {
   orderId: string;
-  amount: number; // ARS, not cents
+  items: OrderItemInput[];
+  shippingCost?: number;
   payer?: {
     email?: string;
     phone?: string;
@@ -50,9 +59,26 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as CreateCheckoutBody;
-    const { orderId, amount, payer } = body;
+    const { orderId, items, shippingCost = 0, payer } = body;
 
-    if (!orderId || !amount || amount <= 0) {
+    if (!orderId || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Pedido inválido' },
+        { status: 400 }
+      );
+    }
+
+    // El recargo se recalcula acá, del lado del servidor, a partir del %
+    // configurado en el panel (/admin/pagos) - nunca se confía en un monto
+    // armado en el navegador.
+    const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) + Number(shippingCost);
+    const { data: surchargePercent } = await supabase.rpc('get_surcharge_percent', {
+      p_payment_method: 'gocuotas',
+    });
+    const surchargeAmount = Math.round(subtotal * ((Number(surchargePercent) || 0) / 100) * 100) / 100;
+    const amount = subtotal + surchargeAmount;
+
+    if (!amount || amount <= 0) {
       return NextResponse.json(
         { success: false, error: 'Pedido inválido' },
         { status: 400 }
@@ -133,7 +159,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, initUrl });
+    return NextResponse.json({ success: true, initUrl, surchargeAmount, total: amount });
   } catch (error) {
     console.error('Error creating GoCuotas checkout:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +18,8 @@ import { formatPrice } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
+import { fetchSurcharges, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
+import { ReceiptUploader } from '@/components/receipt-uploader';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -44,6 +46,11 @@ export default function CheckoutPage() {
   const [calculatingShipping, setCalculatingShipping] = useState(false);
   const [shippingService, setShippingService] = useState('Correo Argentino');
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [surcharges, setSurcharges] = useState<SurchargeMap>(DEFAULT_SURCHARGES);
+
+  useEffect(() => {
+    fetchSurcharges().then(setSurcharges);
+  }, []);
 
   const ARGENTINE_PROVINCES = [
     'Buenos Aires',
@@ -94,7 +101,10 @@ export default function CheckoutPage() {
   };
 
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
-  const grandTotal = total + actualShippingCost;
+  const subtotalWithShipping = total + actualShippingCost;
+  const surchargePercent = surcharges[form.payment_method] ?? 0;
+  const surchargeAmount = Math.round(subtotalWithShipping * (surchargePercent / 100) * 100) / 100;
+  const grandTotal = subtotalWithShipping + surchargeAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,13 +137,20 @@ export default function CheckoutPage() {
         address: form.shipping_method === 'envio' ? `${form.address}, ${form.city}, ${form.province} (CP: ${form.postal_code})` : null,
         city: form.shipping_method === 'envio' ? `${form.city} (${form.province})` : null,
         notes: form.notes || null,
+        // Estos dos son el cálculo local (para no dejar el campo vacío si
+        // por lo que sea no llega respuesta del servidor), pero para
+        // mercadopago/gocuotas se pisan abajo con el valor que el propio
+        // servidor usó para cobrar de verdad.
         total: grandTotal,
+        surcharge_amount: surchargeAmount,
         items: orderItems,
       };
 
       if (form.payment_method === 'mercadopago') {
         // 1. Create the Mercado Pago preference BEFORE inserting the order,
         // so we can store its id and only redirect if it actually succeeded.
+        // El servidor recalcula el recargo de Mercado Pago por su cuenta
+        // (nunca confía en un total armado en el navegador).
         const prefRes = await fetch('/api/mercadopago/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,24 +177,30 @@ export default function CheckoutPage() {
 
         const { error: insertError } = await supabase.from('orders').insert({
           ...baseOrder,
+          total: prefData.total ?? grandTotal,
+          surcharge_amount: prefData.surchargeAmount ?? surchargeAmount,
           mp_preference_id: prefData.preferenceId,
         });
         if (insertError) throw insertError;
 
+        // Mercado Pago recién va a confirmar el pago en su webhook - el
+        // stock NO se toca acá, así que un cliente que abandona el
+        // checkout externo nunca deja mercadería "trabada".
         clearCart();
         window.location.href = prefData.initPoint;
         return;
       }
 
       if (form.payment_method === 'gocuotas') {
-        // Same pattern as Mercado Pago: create the checkout BEFORE inserting
-        // the order, and only redirect if GoCuotas actually gave us a url.
+        // Mismo patrón: el servidor recalcula el recargo de GoCuotas por su
+        // cuenta a partir de los items, no confía en un monto armado acá.
         const checkoutRes = await fetch('/api/gocuotas/create-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             orderId: newOrderId,
-            amount: grandTotal,
+            items: orderItems,
+            shippingCost: actualShippingCost,
             payer: {
               email: form.customer_email || undefined,
               phone: form.customer_phone || undefined,
@@ -194,16 +217,28 @@ export default function CheckoutPage() {
           return;
         }
 
-        const { error: insertError } = await supabase.from('orders').insert(baseOrder);
+        const { error: insertError } = await supabase.from('orders').insert({
+          ...baseOrder,
+          total: checkoutData.total ?? grandTotal,
+          surcharge_amount: checkoutData.surchargeAmount ?? surchargeAmount,
+        });
         if (insertError) throw insertError;
 
+        // Igual que con Mercado Pago: el stock se descuenta recién cuando
+        // el webhook de GoCuotas confirme el pago, no ahora.
         clearCart();
         window.location.href = checkoutData.initUrl;
         return;
       }
 
+      // Efectivo / transferencia: no hay pasarela externa, se consideran un
+      // pedido firme ya mismo, así que el stock se descuenta de una.
       const { error: insertError } = await supabase.from('orders').insert(baseOrder);
       if (insertError) throw insertError;
+
+      supabase.rpc('commit_order_stock', { p_order_id: newOrderId }).then(({ error: stockError }) => {
+        if (stockError) console.error('No se pudo descontar el stock del pedido:', stockError.message);
+      });
 
       // Aviso al celular de la dueña (no bloquea ni rompe la compra si falla)
       fetch('/api/notify-order', {
@@ -258,18 +293,26 @@ export default function CheckoutPage() {
               )}
             </div>
             {form.payment_method === 'transferencia' && (
-              <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                  `Hola! Hice el pedido ${orderId?.slice(0, 8)} y quiero coordinar la transferencia.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mb-3"
-              >
-                <Button size="lg" variant="outline" className="w-full">
-                  Coordinar transferencia por WhatsApp
-                </Button>
-              </a>
+              <>
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                    `Hola! Hice el pedido ${orderId?.slice(0, 8)} y quiero coordinar la transferencia.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mb-3"
+                >
+                  <Button size="lg" variant="outline" className="w-full">
+                    Coordinar transferencia por WhatsApp
+                  </Button>
+                </a>
+                {orderId && (
+                  <div className="rounded-3xl border border-border bg-card p-4 text-left mb-6 shadow-soft">
+                    <p className="text-sm font-medium mb-2">¿Ya transferiste?</p>
+                    <ReceiptUploader orderId={orderId} />
+                  </div>
+                )}
+              </>
             )}
             <Link href="/catalogo">
               <Button size="lg" className="w-full">
@@ -632,6 +675,14 @@ export default function CheckoutPage() {
                       : formatPrice(shippingCost)}
                   </span>
                 </div>
+                {surchargePercent > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Recargo ({form.payment_method === 'gocuotas' ? 'GoCuotas' : 'Mercado Pago'} {surchargePercent}%)
+                    </span>
+                    <span>{formatPrice(surchargeAmount)}</span>
+                  </div>
+                )}
               </div>
               <Separator />
               <div className="flex justify-between">

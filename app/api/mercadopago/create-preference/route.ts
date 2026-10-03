@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getValidMercadoPagoAccessToken } from '@/lib/server/mercadopago-connection';
 import { getServerEnv } from '@/lib/server/env';
+import { supabase } from '@/lib/supabase';
 
 interface OrderItemInput {
   product_id?: string;
@@ -78,6 +79,28 @@ export async function POST(request: Request) {
       });
     }
 
+    // El recargo se recalcula acá, del lado del servidor, a partir del %
+    // configurado en el panel (/admin/pagos) - nunca se confía en un monto
+    // armado en el navegador.
+    const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) + Number(shippingCost);
+    const { data: surchargePercent } = await supabase.rpc('get_surcharge_percent', {
+      p_payment_method: 'mercadopago',
+    });
+    const surchargeAmount = Math.round(subtotal * ((Number(surchargePercent) || 0) / 100) * 100) / 100;
+
+    if (surchargeAmount > 0) {
+      preferenceItems.push({
+        id: 'recargo',
+        title: `Recargo Mercado Pago (${surchargePercent}%)`,
+        quantity: 1,
+        unit_price: surchargeAmount,
+        currency_id: 'ARS',
+        picture_url: undefined,
+      });
+    }
+
+    const total = subtotal + surchargeAmount;
+
     const { first_name, last_name } = splitName(payer?.name);
 
     const preferencePayload = {
@@ -122,6 +145,8 @@ export async function POST(request: Request) {
       success: true,
       preferenceId: mpData.id,
       initPoint: mpData.init_point,
+      surchargeAmount,
+      total,
     });
   } catch (error) {
     console.error('Error creating Mercado Pago preference:', error);

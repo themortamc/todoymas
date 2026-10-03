@@ -33,6 +33,7 @@ import {
 import { supabase, type Order } from '@/lib/supabase';
 import { formatPrice, formatDate } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
+import { ReceiptViewer } from '@/components/admin/receipt-viewer';
 
 const STATUSES = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'] as const;
 
@@ -295,11 +296,24 @@ export default function PedidosPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t font-bold">
+                  {selected.surcharge_amount > 0 && (
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mt-2 pt-2 border-t">
+                      <span>Recargo ({PAYMENT_LABEL[selected.payment_method ?? ''] ?? selected.payment_method})</span>
+                      <span>{formatPrice(selected.surcharge_amount)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-1 pt-2 border-t font-bold">
                     <span>Total</span>
                     <span>{formatPrice(selected.total)}</span>
                   </div>
                 </div>
+
+                {selected.payment_method === 'transferencia' && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Comprobante de transferencia</p>
+                    <ReceiptViewer receiptPath={selected.receipt_path} />
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <p className="text-sm font-medium">Estado del pedido</p>

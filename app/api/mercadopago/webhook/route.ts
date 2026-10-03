@@ -106,6 +106,13 @@ export async function POST(request: Request) {
     }
 
     if (!updateError && paymentStatus === 'aprobado') {
+      // Recién acá se descuenta stock de verdad - commit_order_stock es
+      // idempotente (seguro llamarlo de nuevo si Mercado Pago reintenta el
+      // webhook), así que no hace falta ningún chequeo extra.
+      const { error: stockError } = await supabaseAdmin.rpc('commit_order_stock', { p_order_id: orderId });
+      if (stockError) {
+        console.error('Error descontando stock desde el webhook de Mercado Pago:', stockError);
+      }
       await notifyOrderOnce(supabaseAdmin, orderId);
     }
 
