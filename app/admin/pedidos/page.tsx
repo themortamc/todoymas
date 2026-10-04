@@ -57,7 +57,10 @@ const PAYMENT_LABEL: Record<string, string> = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta',
   transferencia: 'Transferencia',
-  mercadopago: 'Mercado Pago',
+  mercadopago: 'Mercado Pago', // pedidos viejos, de antes de separar tarjeta/dinero
+  mercadopago_tarjeta: 'Mercado Pago (tarjeta)',
+  mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
+  gocuotas: 'GoCuotas',
   otro: 'Otro',
 };
 

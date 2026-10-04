@@ -39,7 +39,8 @@ export default function CheckoutPage() {
     province: 'Mendoza',
     postal_code: '',
     notes: '',
-    payment_method: 'mercadopago',
+    // 'mercadopago_tarjeta' | 'mercadopago_dinero' | 'gocuotas' | 'transferencia' | 'efectivo'
+    payment_method: 'mercadopago_tarjeta',
   });
 
   const [shippingCost, setShippingCost] = useState<number | null>(null);
@@ -100,6 +101,7 @@ export default function CheckoutPage() {
     }
   };
 
+  const isMercadoPago = form.payment_method === 'mercadopago_tarjeta' || form.payment_method === 'mercadopago_dinero';
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
   const subtotalWithShipping = total + actualShippingCost;
   const surchargePercent = surcharges[form.payment_method] ?? 0;
@@ -146,11 +148,14 @@ export default function CheckoutPage() {
         items: orderItems,
       };
 
-      if (form.payment_method === 'mercadopago') {
+      if (isMercadoPago) {
         // 1. Create the Mercado Pago preference BEFORE inserting the order,
         // so we can store its id and only redirect if it actually succeeded.
         // El servidor recalcula el recargo de Mercado Pago por su cuenta
-        // (nunca confía en un total armado en el navegador).
+        // (nunca confía en un total armado en el navegador), y la
+        // preferencia queda restringida a tarjeta o a dinero en cuenta
+        // según lo que eligió el cliente, para que el recargo nunca se
+        // aplique al método equivocado.
         const prefRes = await fetch('/api/mercadopago/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -158,6 +163,7 @@ export default function CheckoutPage() {
             orderId: newOrderId,
             items: orderItems,
             shippingCost: actualShippingCost,
+            paymentVariant: form.payment_method === 'mercadopago_dinero' ? 'dinero' : 'tarjeta',
             payer: {
               name: form.customer_name,
               email: form.customer_email || undefined,
@@ -406,7 +412,7 @@ export default function CheckoutPage() {
                   setForm((prev) => ({
                     ...prev,
                     shipping_method: v,
-                    payment_method: v === 'envio' && prev.payment_method === 'efectivo' ? 'mercadopago' : prev.payment_method,
+                    payment_method: v === 'envio' && prev.payment_method === 'efectivo' ? 'mercadopago_tarjeta' : prev.payment_method,
                   }))
                 }
               >
@@ -535,16 +541,33 @@ export default function CheckoutPage() {
               >
                 <div className={cn(
                   'flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors',
-                  form.payment_method === 'mercadopago' && 'border-primary bg-primary/5'
+                  form.payment_method === 'mercadopago_tarjeta' && 'border-primary bg-primary/5'
                 )}>
-                  <RadioGroupItem value="mercadopago" id="pago-mp" className="mt-1" />
+                  <RadioGroupItem value="mercadopago_tarjeta" id="pago-mp-tarjeta" className="mt-1" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4 text-primary" />
-                      <Label htmlFor="pago-mp" className="font-medium cursor-pointer">Mercado Pago</Label>
+                      <Label htmlFor="pago-mp-tarjeta" className="font-medium cursor-pointer">Tarjeta de crédito o débito</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Tarjetas de crédito/débito, cuotas y dinero en cuenta. Te lleva a un checkout seguro de Mercado Pago.
+                      Con Mercado Pago, cuotas incluidas.
+                      {(surcharges.mercadopago_tarjeta ?? 0) > 0 && ` Tiene un recargo del ${surcharges.mercadopago_tarjeta}%.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={cn(
+                  'flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors',
+                  form.payment_method === 'mercadopago_dinero' && 'border-primary bg-primary/5'
+                )}>
+                  <RadioGroupItem value="mercadopago_dinero" id="pago-mp-dinero" className="mt-1" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                      <Label htmlFor="pago-mp-dinero" className="font-medium cursor-pointer">Dinero en cuenta de Mercado Pago</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Pagás con el saldo disponible en tu cuenta de Mercado Pago, sin recargo.
                     </p>
                   </div>
                 </div>
@@ -606,7 +629,7 @@ export default function CheckoutPage() {
                 </div>
               </RadioGroup>
 
-              {form.payment_method === 'mercadopago' && (
+              {isMercadoPago && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <Lock className="h-3 w-3" />
                   Vas a ser redirigido al checkout de Mercado Pago para completar el pago de forma segura.
@@ -678,7 +701,7 @@ export default function CheckoutPage() {
                 {surchargePercent > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Recargo ({form.payment_method === 'gocuotas' ? 'GoCuotas' : 'Mercado Pago'} {surchargePercent}%)
+                      Recargo ({form.payment_method === 'gocuotas' ? 'GoCuotas' : 'tarjeta'} {surchargePercent}%)
                     </span>
                     <span>{formatPrice(surchargeAmount)}</span>
                   </div>
@@ -698,13 +721,13 @@ export default function CheckoutPage() {
                 {processing ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {form.payment_method === 'mercadopago'
+                    {isMercadoPago
                       ? 'Redirigiendo a Mercado Pago...'
                       : form.payment_method === 'gocuotas'
                       ? 'Redirigiendo a GoCuotas...'
                       : 'Procesando...'}
                   </span>
-                ) : form.payment_method === 'mercadopago' ? (
+                ) : isMercadoPago ? (
                   'Pagar con Mercado Pago'
                 ) : form.payment_method === 'gocuotas' ? (
                   'Pagar en cuotas con GoCuotas'

@@ -20,7 +20,8 @@ const MP_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  mercadopago: 'Mercado Pago (tarjetas de crédito y débito)',
+  mercadopago_tarjeta: 'Mercado Pago — Tarjeta de crédito/débito',
+  mercadopago_dinero: 'Mercado Pago — Dinero en cuenta',
   gocuotas: 'GoCuotas',
   transferencia: 'Transferencia bancaria',
   efectivo: 'Efectivo',

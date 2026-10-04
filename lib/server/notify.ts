@@ -3,6 +3,8 @@ import { sendPush } from './push';
 
 const PAYMENT_LABELS: Record<string, string> = {
   mercadopago: 'Mercado Pago',
+  mercadopago_tarjeta: 'Mercado Pago (tarjeta)',
+  mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
   gocuotas: 'GoCuotas',
   transferencia: 'Transferencia',
   efectivo: 'Efectivo',

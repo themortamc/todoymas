@@ -3,7 +3,8 @@ import { supabase } from './supabase';
 export type SurchargeMap = Record<string, number>;
 
 export const DEFAULT_SURCHARGES: SurchargeMap = {
-  mercadopago: 18,
+  mercadopago_tarjeta: 18,
+  mercadopago_dinero: 0,
   gocuotas: 19,
   transferencia: 0,
   efectivo: 0,

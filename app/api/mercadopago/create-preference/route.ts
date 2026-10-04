@@ -15,12 +15,39 @@ interface CreatePreferenceBody {
   orderId: string;
   items: OrderItemInput[];
   shippingCost?: number;
+  // 'tarjeta': solo tarjetas de crédito/débito, lleva recargo.
+  // 'dinero': solo dinero en cuenta de Mercado Pago, sin recargo.
+  paymentVariant?: 'tarjeta' | 'dinero';
   payer?: {
     name?: string;
     email?: string;
     phone?: string;
   };
 }
+
+// Tipos de medio de pago que reconoce la preferencia de Mercado Pago
+// (payment_methods.excluded_payment_types). Los usamos para que la
+// preferencia de "tarjeta" solo deje pagar con tarjeta, y la de "dinero"
+// solo deje pagar con el saldo de la cuenta de Mercado Pago - así el
+// recargo nunca termina aplicado al método equivocado.
+const ONLY_CARDS_EXCLUDES = [
+  { id: 'account_money' },
+  { id: 'ticket' },
+  { id: 'bank_transfer' },
+  { id: 'atm' },
+  { id: 'digital_currency' },
+  { id: 'digital_wallet' },
+];
+
+const ONLY_ACCOUNT_MONEY_EXCLUDES = [
+  { id: 'credit_card' },
+  { id: 'debit_card' },
+  { id: 'prepaid_card' },
+  { id: 'ticket' },
+  { id: 'bank_transfer' },
+  { id: 'atm' },
+  { id: 'digital_currency' },
+];
 
 // Splits "Juan Pérez" into { first_name: "Juan", last_name: "Pérez" } as
 // Mercado Pago expects separate name fields for the payer.
@@ -47,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as CreatePreferenceBody;
-    const { orderId, items, shippingCost = 0, payer } = body;
+    const { orderId, items, shippingCost = 0, payer, paymentVariant = 'tarjeta' } = body;
 
     if (!orderId || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -81,17 +108,19 @@ export async function POST(request: Request) {
 
     // El recargo se recalcula acá, del lado del servidor, a partir del %
     // configurado en el panel (/admin/pagos) - nunca se confía en un monto
-    // armado en el navegador.
+    // armado en el navegador. Solo existe recargo para la variante
+    // "tarjeta"; pagando con dinero en cuenta nunca hay recargo.
     const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0) + Number(shippingCost);
+    const surchargeKey = paymentVariant === 'dinero' ? 'mercadopago_dinero' : 'mercadopago_tarjeta';
     const { data: surchargePercent } = await supabase.rpc('get_surcharge_percent', {
-      p_payment_method: 'mercadopago',
+      p_payment_method: surchargeKey,
     });
     const surchargeAmount = Math.round(subtotal * ((Number(surchargePercent) || 0) / 100) * 100) / 100;
 
     if (surchargeAmount > 0) {
       preferenceItems.push({
         id: 'recargo',
-        title: `Recargo Mercado Pago (${surchargePercent}%)`,
+        title: `Recargo tarjeta (${surchargePercent}%)`,
         quantity: 1,
         unit_price: surchargeAmount,
         currency_id: 'ARS',
@@ -120,6 +149,9 @@ export async function POST(request: Request) {
       auto_return: 'approved',
       notification_url: `${siteUrl}/api/mercadopago/webhook`,
       statement_descriptor: 'TODOYMAS',
+      payment_methods: {
+        excluded_payment_types: paymentVariant === 'dinero' ? ONLY_ACCOUNT_MONEY_EXCLUDES : ONLY_CARDS_EXCLUDES,
+      },
     };
 
     const mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
