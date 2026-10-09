@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase, type Product, type Category, type Order } from '@/lib/supabase';
 import { formatPrice, formatDate } from '@/lib/format';
+import { fetchSurcharges, type SurchargeMap } from '@/lib/surcharges';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -104,6 +105,11 @@ function printReceipt(sale: Order) {
         </div>
         <table>
           ${rows}
+          ${
+            Number(sale.surcharge_amount) > 0
+              ? `<tr><td>Recargo</td><td style="text-align:right;">${formatPrice(sale.surcharge_amount)}</td></tr>`
+              : ''
+          }
           <tr class="total-row"><td>Total</td><td style="text-align:right;">${formatPrice(sale.total)}</td></tr>
         </table>
         <p class="footer">¡Gracias por su compra!</p>
@@ -137,14 +143,18 @@ export default function VentasPage() {
   const [todayCount, setTodayCount] = useState(0);
   const [todayTotal, setTodayTotal] = useState(0);
 
+  const [surcharges, setSurcharges] = useState<SurchargeMap>({});
+
   async function loadData() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, rates] = await Promise.all([
       supabase.from('products').select('*').order('name'),
       supabase.from('categories').select('*').order('name'),
+      fetchSurcharges(),
     ]);
     setProducts((prods as Product[]) ?? []);
     setCategories((cats as Category[]) ?? []);
+    setSurcharges(rates);
     setLoading(false);
   }
 
@@ -247,7 +257,11 @@ export default function VentasPage() {
 
   const subtotal = cart.reduce((sum, l) => sum + l.product.price * l.quantity, 0);
   const discountNum = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
-  const total = subtotal - discountNum;
+  // El servidor recalcula este recargo al registrar la venta; acá es solo
+  // para mostrarle al vendedor cuánto va a cobrar.
+  const surchargePercent = surcharges[`mostrador_${paymentMethod}`] ?? 0;
+  const surchargeAmount = Math.round((subtotal - discountNum) * (surchargePercent / 100) * 100) / 100;
+  const total = subtotal - discountNum + surchargeAmount;
   const itemCount = cart.reduce((sum, l) => sum + l.quantity, 0);
 
   async function handleConfirm() {
@@ -413,6 +427,12 @@ export default function VentasPage() {
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Descuento</span>
                 <span>-{formatPrice(discountNum)}</span>
+              </div>
+            )}
+            {surchargePercent > 0 && (
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Recargo {PAYMENT_LABEL[paymentMethod]?.toLowerCase()} ({surchargePercent}%)</span>
+                <span>+{formatPrice(surchargeAmount)}</span>
               </div>
             )}
             <div className="flex items-center justify-between text-lg font-bold pt-1">
@@ -612,6 +632,7 @@ export default function VentasPage() {
                 <p className="text-3xl font-bold">{formatPrice(lastSale.total)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {PAYMENT_LABEL[lastSale.payment_method ?? ''] ?? lastSale.payment_method}
+                  {Number(lastSale.surcharge_amount) > 0 && ` · incluye recargo de ${formatPrice(lastSale.surcharge_amount)}`}
                 </p>
               </div>
               <div className="space-y-1 max-h-40 overflow-y-auto text-sm">

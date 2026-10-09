@@ -25,9 +25,26 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   gocuotas: 'GoCuotas',
   transferencia: 'Transferencia bancaria',
   efectivo: 'Efectivo',
+  mostrador_tarjeta: 'Tarjeta de crédito/débito',
+  mostrador_efectivo: 'Efectivo',
+  mostrador_transferencia: 'Transferencia',
+  mostrador_otro: 'Otro',
 };
 
-function SurchargesCard() {
+const SURCHARGE_COPY = {
+  online: {
+    title: 'Recargos online',
+    description:
+      'Se suman al total cuando el cliente paga desde la tienda online, según el método que elija en el checkout. Poné 0 para no cobrar recargo.',
+  },
+  mostrador: {
+    title: 'Recargos en mostrador',
+    description:
+      'Se suman automáticamente al total cuando registrás una venta en mostrador, según el método de pago que elijas. Poné 0 para no cobrar recargo.',
+  },
+} as const;
+
+function SurchargesCard({ scope }: { scope: 'online' | 'mostrador' }) {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const [rows, setRows] = useState<{ payment_method: string; surcharge_percent: number }[]>([]);
@@ -47,7 +64,10 @@ function SurchargesCard() {
       .from('payment_surcharges')
       .select('payment_method, surcharge_percent')
       .order('payment_method');
-    if (!error && data) setRows(data as { payment_method: string; surcharge_percent: number }[]);
+    if (!error && data) {
+      const all = data as { payment_method: string; surcharge_percent: number }[];
+      setRows(all.filter((r) => r.payment_method.startsWith('mostrador_') === (scope === 'mostrador')));
+    }
     setLoading(false);
   }
 
@@ -82,11 +102,9 @@ function SurchargesCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Percent className="h-5 w-5" />
-          Recargos por método de pago
+          {SURCHARGE_COPY[scope].title}
         </CardTitle>
-        <CardDescription>
-          Se suman automáticamente al total del pedido según el método que elija el cliente en el checkout. Poné 0 para no cobrar recargo.
-        </CardDescription>
+        <CardDescription>{SURCHARGE_COPY[scope].description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {notice && (
@@ -319,7 +337,8 @@ function PagosContent() {
         </CardContent>
       </Card>
 
-      <SurchargesCard />
+      <SurchargesCard scope="online" />
+      <SurchargesCard scope="mostrador" />
     </div>
   );
 }

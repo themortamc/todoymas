@@ -8,6 +8,10 @@ export const DEFAULT_SURCHARGES: SurchargeMap = {
   gocuotas: 19,
   transferencia: 0,
   efectivo: 0,
+  mostrador_tarjeta: 18,
+  mostrador_efectivo: 0,
+  mostrador_transferencia: 0,
+  mostrador_otro: 0,
 };
 
 // Trae el % de recargo configurado para cada método de pago desde
