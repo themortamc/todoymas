@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableHeader,
@@ -45,6 +46,7 @@ import { formatPrice } from '@/lib/format';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { VariantEditor, emptyVariantRow, type VariantFormRow } from '@/components/admin/variant-editor';
+import { fetchExtraCategoryMap, type ExtraCategoryMap } from '@/lib/product-categories';
 
 const NONE = 'none';
 
@@ -56,6 +58,7 @@ type FormState = {
   stock: string;
   category_id: string;
   subcategory_id: string;
+  extra_category_ids: string[];
   images: string[];
   featured: boolean;
   variants: VariantFormRow[];
@@ -69,6 +72,7 @@ const EMPTY_FORM: FormState = {
   stock: '',
   category_id: NONE,
   subcategory_id: NONE,
+  extra_category_ids: [],
   images: [],
   featured: false,
   variants: [],
@@ -78,6 +82,7 @@ export default function ProductosPage() {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [extraMap, setExtraMap] = useState<ExtraCategoryMap>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -90,12 +95,14 @@ export default function ProductosPage() {
 
   async function loadData() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }] = await Promise.all([
+    const [{ data: prods }, { data: cats }, extras] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('categories').select('*').order('name'),
+      fetchExtraCategoryMap(),
     ]);
     setProducts((prods as Product[]) ?? []);
     setCategories((cats as Category[]) ?? []);
+    setExtraMap(extras);
     setLoading(false);
   }
 
@@ -128,6 +135,7 @@ export default function ProductosPage() {
       stock: String(p.stock),
       category_id: p.category_id ?? NONE,
       subcategory_id: p.subcategory_id ?? NONE,
+      extra_category_ids: extraMap[p.id] ?? [],
       images: p.images ?? [],
       featured: p.featured,
       variants: [],
@@ -201,6 +209,30 @@ export default function ProductosPage() {
     }
 
     const productId = savedProduct.id as string;
+
+    // Categorías adicionales: se reemplazan por la lista actual (sin repetir
+    // la categoría/subcategoría principal, que ya cuenta por sí sola).
+    const extraIds = form.extra_category_ids.filter(
+      (id) => id !== payload.category_id && id !== payload.subcategory_id
+    );
+    const { error: deleteExtrasError } = await supabase
+      .from('product_extra_categories')
+      .delete()
+      .eq('product_id', productId);
+    let extrasError = deleteExtrasError;
+    if (!extrasError && extraIds.length > 0) {
+      const { error: insertExtrasError } = await supabase
+        .from('product_extra_categories')
+        .insert(extraIds.map((category_id) => ({ product_id: productId, category_id })));
+      extrasError = insertExtrasError;
+    }
+    if (extrasError) {
+      toast({
+        title: 'El producto se guardó, pero no se pudieron guardar las categorías adicionales',
+        description: extrasError.message,
+        variant: 'destructive',
+      });
+    }
 
     // Reemplaza todas las variantes existentes por la lista actual: más
     // simple y confiable que calcular altas/bajas/cambios fila por fila.
@@ -323,6 +355,11 @@ export default function ProductosPage() {
                 <TableCell className="text-muted-foreground">
                   {categoryName(p.category_id)}
                   {p.subcategory_id && ` / ${categoryName(p.subcategory_id)}`}
+                  {(extraMap[p.id]?.length ?? 0) > 0 && (
+                    <span className="block text-xs">
+                      + {extraMap[p.id].map((id) => categoryName(id)).join(', ')}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>{formatPrice(p.price)}</TableCell>
                 <TableCell>
@@ -431,6 +468,28 @@ export default function ProductosPage() {
             </div>
 
             <div className="space-y-1.5">
+              <Label>Categorías adicionales</Label>
+              <p className="text-xs text-muted-foreground">
+                Marcá otras categorías en las que también tiene que aparecer este producto.
+              </p>
+              <div className="max-h-44 overflow-y-auto rounded-lg border p-3 space-y-1.5">
+                {parents.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Todavía no hay categorías.</p>
+                )}
+                {parents.map((parent) => (
+                  <div key={parent.id} className="space-y-1.5">
+                    <ExtraCategoryOption category={parent} form={form} setForm={setForm} />
+                    {subcategoriesFor(parent.id).map((sub) => (
+                      <div key={sub.id} className="pl-6">
+                        <ExtraCategoryOption category={sub} form={form} setForm={setForm} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
               <Label>Imágenes</Label>
               <ImageUploader
                 images={form.images}
@@ -485,5 +544,34 @@ export default function ProductosPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function ExtraCategoryOption({
+  category,
+  form,
+  setForm,
+}: {
+  category: Category;
+  form: FormState;
+  setForm: (f: FormState) => void;
+}) {
+  const isMain = form.category_id === category.id || form.subcategory_id === category.id;
+  const checked = isMain || form.extra_category_ids.includes(category.id);
+  return (
+    <label className="flex items-center gap-2 text-sm cursor-pointer">
+      <Checkbox
+        checked={checked}
+        disabled={isMain}
+        onCheckedChange={(value) => {
+          const next = value === true
+            ? Array.from(new Set([...form.extra_category_ids, category.id]))
+            : form.extra_category_ids.filter((id) => id !== category.id);
+          setForm({ ...form, extra_category_ids: next });
+        }}
+      />
+      <span>{category.name}</span>
+      {isMain && <span className="text-xs text-muted-foreground">(principal)</span>}
+    </label>
   );
 }

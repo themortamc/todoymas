@@ -39,6 +39,7 @@ import {
 import { supabase, type Product, type Category, type Order } from '@/lib/supabase';
 import { formatPrice, formatDate } from '@/lib/format';
 import { fetchSurcharges, type SurchargeMap } from '@/lib/surcharges';
+import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -144,17 +145,20 @@ export default function VentasPage() {
   const [todayTotal, setTodayTotal] = useState(0);
 
   const [surcharges, setSurcharges] = useState<SurchargeMap>({});
+  const [extraMap, setExtraMap] = useState<ExtraCategoryMap>({});
 
   async function loadData() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }, rates] = await Promise.all([
+    const [{ data: prods }, { data: cats }, rates, extras] = await Promise.all([
       supabase.from('products').select('*').order('name'),
       supabase.from('categories').select('*').order('name'),
       fetchSurcharges(),
+      fetchExtraCategoryMap(),
     ]);
     setProducts((prods as Product[]) ?? []);
     setCategories((cats as Category[]) ?? []);
     setSurcharges(rates);
+    setExtraMap(extras);
     setLoading(false);
   }
 
@@ -178,14 +182,23 @@ export default function VentasPage() {
 
   const parentCategories = categories.filter((c) => !c.parent_id);
 
+  const categoryById = useMemo(() => {
+    const map: Record<string, Category> = {};
+    categories.forEach((c) => { map[c.id] = c; });
+    return map;
+  }, [categories]);
+
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
     return products.filter((p) => {
       const matchesSearch = !term || p.name.toLowerCase().includes(term);
-      const matchesCategory = categoryFilter === 'todos' || p.category_id === categoryFilter;
+      // Cuenta la categoría principal, la subcategoría y las adicionales
+      const matchesCategory =
+        categoryFilter === 'todos' ||
+        allCategoryIdsForProduct(p, extraMap, categoryById).has(categoryFilter);
       return matchesSearch && matchesCategory;
     });
-  }, [products, search, categoryFilter]);
+  }, [products, search, categoryFilter, extraMap, categoryById]);
 
   const visibleProducts = filteredProducts.slice(0, VISIBLE_LIMIT);
 

@@ -28,6 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase, type Product, type Category } from '@/lib/supabase';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 
 function CatalogContent() {
   const searchParams = useSearchParams();
@@ -38,6 +39,7 @@ function CatalogContent() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [extraMap, setExtraMap] = useState<ExtraCategoryMap>({});
   const [loading, setLoading] = useState(true);
 
   const [searchInput, setSearchInput] = useState(query);
@@ -70,8 +72,12 @@ function CatalogContent() {
         dbQuery = dbQuery.eq('featured', true);
       }
 
-      const { data: prods } = await dbQuery.order('created_at', { ascending: false });
+      const [{ data: prods }, extras] = await Promise.all([
+        dbQuery.order('created_at', { ascending: false }),
+        fetchExtraCategoryMap(),
+      ]);
       setProducts((prods as Product[]) ?? []);
+      setExtraMap(extras);
       setLoading(false);
     }
     loadData();
@@ -106,23 +112,19 @@ function CatalogContent() {
       );
     }
 
-    if (selectedCategory) {
-      const parentCat = parents.find(c => c.slug === selectedCategory);
-      if (parentCat) {
-        result = result.filter(p => {
-          const pcat = p.category_id ? categoryMap[p.category_id] : null;
-          const psub = p.subcategory_id ? categoryMap[p.subcategory_id] : null;
-          return pcat?.slug === selectedCategory || psub?.slug === selectedCategory ||
-            (psub && parents.find(pp => pp.id === psub.parent_id)?.slug === selectedCategory);
-        });
-      }
+    const parentCat = selectedCategory ? parents.find(c => c.slug === selectedCategory) : undefined;
+
+    if (parentCat) {
+      // Cuenta la categoría principal, la subcategoría y las categorías
+      // adicionales del producto (y los padres de cada subcategoría).
+      result = result.filter(p => allCategoryIdsForProduct(p, extraMap, categoryMap).has(parentCat.id));
     }
 
     if (selectedSubcategory) {
-      result = result.filter(p => {
-        const psub = p.subcategory_id ? categoryMap[p.subcategory_id] : null;
-        return psub?.slug === selectedSubcategory;
-      });
+      const subCat = categories.find(
+        c => c.slug === selectedSubcategory && c.parent_id && (!parentCat || c.parent_id === parentCat.id)
+      );
+      result = result.filter(p => (subCat ? allCategoryIdsForProduct(p, extraMap, categoryMap).has(subCat.id) : false));
     }
 
     if (priceMin) {
@@ -147,7 +149,7 @@ function CatalogContent() {
     }
 
     return result;
-  }, [products, query, selectedCategory, selectedSubcategory, priceMin, priceMax, sortBy, parents, categoryMap]);
+  }, [products, query, selectedCategory, selectedSubcategory, priceMin, priceMax, sortBy, parents, categories, categoryMap, extraMap]);
 
   const activeFilters: string[] = [];
   if (query) activeFilters.push(`Búsqueda: "${query}"`);

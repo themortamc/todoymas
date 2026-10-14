@@ -20,6 +20,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [product, setProduct] = useState<Product | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [subcategory, setSubcategory] = useState<Category | null>(null);
+  const [extraCategories, setExtraCategories] = useState<{ id: string; name: string; href: string }[]>([]);
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -79,6 +80,29 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           .eq('id', (prod as Product).subcategory_id!)
           .maybeSingle();
         setSubcategory(sub as Category | null);
+      }
+
+      // Categorías adicionales (un producto puede estar en más de una)
+      const { data: extraRows } = await supabase
+        .from('product_extra_categories')
+        .select('category_id')
+        .eq('product_id', id);
+      const extraIds = ((extraRows as { category_id: string }[] | null) ?? []).map((r) => r.category_id);
+      if (extraIds.length > 0) {
+        const { data: allCats } = await supabase.from('categories').select('*');
+        const byId: Record<string, Category> = {};
+        ((allCats as Category[]) ?? []).forEach((c) => { byId[c.id] = c; });
+        const extras = extraIds
+          .map((cid) => byId[cid])
+          .filter((c): c is Category => Boolean(c))
+          .map((c) => {
+            const parent = c.parent_id ? byId[c.parent_id] : null;
+            const href = parent
+              ? `/catalogo?categoria=${parent.slug}&subcategoria=${c.slug}`
+              : `/catalogo?categoria=${c.slug}`;
+            return { id: c.id, name: c.name, href };
+          });
+        setExtraCategories(extras);
       }
 
       if ((prod as Product).category_id) {
@@ -269,10 +293,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           {/* Info */}
           <div className="space-y-4">
             <div>
-              {category && (
-                <Link href={`/catalogo?categoria=${category.slug}`}>
-                  <Badge variant="secondary" className="mb-2">{category.name}</Badge>
-                </Link>
+              {(category || extraCategories.length > 0) && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {category && (
+                    <Link href={`/catalogo?categoria=${category.slug}`}>
+                      <Badge variant="secondary">{category.name}</Badge>
+                    </Link>
+                  )}
+                  {extraCategories.map((c) => (
+                    <Link key={c.id} href={c.href}>
+                      <Badge variant="secondary">{c.name}</Badge>
+                    </Link>
+                  ))}
+                </div>
               )}
               <h1 className="text-2xl md:text-3xl font-bold">{product.name}</h1>
             </div>
