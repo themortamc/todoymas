@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Store, LayoutDashboard, Package, FolderTree, ShoppingCart, ShoppingBag, LogOut, Menu, X, CreditCard, Users } from 'lucide-react';
+import { Store, LayoutDashboard, Package, FolderTree, ShoppingCart, ShoppingBag, LogOut, Menu, X, CreditCard, Users, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin/productos', label: 'Productos', icon: Package, adminOnly: false },
   { href: '/admin/categorias', label: 'Categorías', icon: FolderTree, adminOnly: false },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingCart, adminOnly: false },
+  { href: '/admin/comentarios', label: 'Comentarios', icon: MessageCircle, adminOnly: true },
   // Pagos (credenciales de Mercado Pago) y Usuarios son cosas que solo el
   // dueño debería ver o tocar - un empleado ni siquiera necesita saber que
   // existen. El servidor igual las bloquea aunque alguien entre por URL

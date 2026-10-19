@@ -13,6 +13,7 @@ import { useCart, type CartVariant } from '@/lib/cart-context';
 import { supabase, type Product, type Category, type ProductVariant } from '@/lib/supabase';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { ProductComments } from '@/components/product-comments';
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -484,6 +485,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
           </div>
         </div>
+
+        {/* Comentarios de clientes */}
+        <ProductComments productId={product.id} />
 
         {/* Related products */}
         {related.length > 0 && (
