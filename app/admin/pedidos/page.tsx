@@ -294,6 +294,9 @@ export default function PedidosPage() {
                       <div key={i} className="flex items-center justify-between text-sm border-b pb-2 last:border-0">
                         <span>
                           {item.quantity}x {item.name}
+                          {item.variant && (
+                            <span className="block text-xs text-muted-foreground">{item.variant}</span>
+                          )}
                         </span>
                         <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
                       </div>

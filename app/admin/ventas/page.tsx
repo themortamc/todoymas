@@ -39,11 +39,18 @@ import {
 import { supabase, type Product, type Category, type Order } from '@/lib/supabase';
 import { formatPrice, formatDate } from '@/lib/format';
 import { fetchSurcharges, type SurchargeMap } from '@/lib/surcharges';
+import { cartLineKey, type CartVariant } from '@/lib/cart-context';
+import { VariantPickerDialog, type PickedVariant } from '@/components/variant-picker-dialog';
 import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type CartLine = { product: Product; quantity: number };
+// variant / variantStock: solo para productos con variantes (color, talle...).
+// Cada combinación elegida es una línea aparte del mismo producto.
+type CartLine = { product: Product; quantity: number; variant?: CartVariant; variantStock?: number };
+
+const lineKey = (l: CartLine) => cartLineKey(l.product.id, l.variant?.id);
+const variantText = (v?: CartVariant) => (v ? `${v.group_name}: ${v.label}` : undefined);
 
 const PAYMENT_METHODS = [
   { value: 'efectivo', label: 'Efectivo', icon: Banknote },
@@ -74,7 +81,7 @@ function printReceipt(sale: Order) {
     .map(
       (i) => `
       <tr>
-        <td>${i.quantity}x ${escapeHtml(i.name)}</td>
+        <td>${i.quantity}x ${escapeHtml(i.name)}${i.variant ? `<br/><span style="font-size:11px;color:#555;">${escapeHtml(i.variant)}</span>` : ''}</td>
         <td style="text-align:right; white-space:nowrap;">${formatPrice(i.price * i.quantity)}</td>
       </tr>`
     )
@@ -133,6 +140,7 @@ export default function VentasPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('todos');
 
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [customerName, setCustomerName] = useState('');
   const [discount, setDiscount] = useState('');
@@ -203,9 +211,9 @@ export default function VentasPage() {
   const visibleProducts = filteredProducts.slice(0, VISIBLE_LIMIT);
 
   const cartQtyFor = (productId: string) =>
-    cart.find((l) => l.product.id === productId)?.quantity ?? 0;
+    cart.filter((l) => l.product.id === productId).reduce((sum, l) => sum + l.quantity, 0);
 
-  function addToCart(product: Product) {
+  function addToCart(product: Product, picked?: PickedVariant) {
     if (product.stock <= 0) {
       toast({
         title: 'Sin stock',
@@ -214,46 +222,75 @@ export default function VentasPage() {
       });
       return;
     }
+
+    // Los productos con variantes necesitan que se elija la opción primero.
+    if (product.has_variants && !picked) {
+      setPickerProduct(product);
+      return;
+    }
+
+    const variant = picked?.variant;
+    const variantStock = picked?.stock;
+    const key = cartLineKey(product.id, variant?.id);
+    const existing = cart.find((l) => lineKey(l) === key);
+
+    // Se descuenta del stock general del producto, así que se cuenta todo lo
+    // que ya hay de ese producto en la venta (aunque sean otras variantes).
+    if (cartQtyFor(product.id) >= product.stock) {
+      toast({
+        title: 'Stock máximo alcanzado',
+        description: `Solo quedan ${product.stock} unidades de "${product.name}".`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (variantStock !== undefined && (existing?.quantity ?? 0) >= variantStock) {
+      toast({
+        title: 'Stock máximo alcanzado',
+        description: `Solo quedan ${variantStock} unidades de "${product.name}" (${variant?.label}).`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.find((l) => l.product.id === product.id);
-      if (existing) {
-        if (existing.quantity >= product.stock) {
-          toast({
-            title: 'Stock máximo alcanzado',
-            description: `Solo quedan ${product.stock} unidades de "${product.name}".`,
-            variant: 'destructive',
-          });
-          return prev;
-        }
-        return prev.map((l) =>
-          l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l
-        );
+      if (prev.some((l) => lineKey(l) === key)) {
+        return prev.map((l) => (lineKey(l) === key ? { ...l, quantity: l.quantity + 1 } : l));
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, variant, variantStock }];
     });
   }
 
-  function changeQty(productId: string, delta: number) {
-    setCart((prev) =>
-      prev.flatMap((l) => {
-        if (l.product.id !== productId) return [l];
-        const next = l.quantity + delta;
-        if (next <= 0) return [];
-        if (next > l.product.stock) {
-          toast({
-            title: 'Stock máximo alcanzado',
-            description: `Solo quedan ${l.product.stock} unidades disponibles.`,
-            variant: 'destructive',
-          });
-          return [l];
-        }
-        return [{ ...l, quantity: next }];
-      })
-    );
+  function changeQty(key: string, delta: number) {
+    const line = cart.find((l) => lineKey(l) === key);
+    if (!line) return;
+    const next = line.quantity + delta;
+    if (next <= 0) {
+      setCart((prev) => prev.filter((l) => lineKey(l) !== key));
+      return;
+    }
+    const otherQty = cartQtyFor(line.product.id) - line.quantity;
+    if (otherQty + next > line.product.stock) {
+      toast({
+        title: 'Stock máximo alcanzado',
+        description: `Solo quedan ${line.product.stock} unidades disponibles.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (line.variantStock !== undefined && next > line.variantStock) {
+      toast({
+        title: 'Stock máximo alcanzado',
+        description: `Solo quedan ${line.variantStock} unidades de esta opción.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    setCart((prev) => prev.map((l) => (lineKey(l) === key ? { ...l, quantity: next } : l)));
   }
 
-  function removeLine(productId: string) {
-    setCart((prev) => prev.filter((l) => l.product.id !== productId));
+  function removeLine(key: string) {
+    setCart((prev) => prev.filter((l) => lineKey(l) !== key));
   }
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -281,7 +318,11 @@ export default function VentasPage() {
     if (cart.length === 0) return;
     setSubmitting(true);
 
-    const payloadItems = cart.map((l) => ({ product_id: l.product.id, quantity: l.quantity }));
+    const payloadItems = cart.map((l) => ({
+      product_id: l.product.id,
+      quantity: l.quantity,
+      variant: variantText(l.variant),
+    }));
 
     const { data, error } = await supabase.rpc('register_counter_sale', {
       p_items: payloadItems,
@@ -302,8 +343,8 @@ export default function VentasPage() {
 
     setProducts((prev) =>
       prev.map((p) => {
-        const line = cart.find((l) => l.product.id === p.id);
-        return line ? { ...p, stock: Math.max(p.stock - line.quantity, 0) } : p;
+        const sold = cart.filter((l) => l.product.id === p.id).reduce((sum, l) => sum + l.quantity, 0);
+        return sold > 0 ? { ...p, stock: Math.max(p.stock - sold, 0) } : p;
       })
     );
 
@@ -336,9 +377,12 @@ export default function VentasPage() {
             </div>
           )}
           {cart.map((line) => (
-            <div key={line.product.id} className="flex items-start gap-3 border-b pb-3 last:border-0">
+            <div key={lineKey(line)} className="flex items-start gap-3 border-b pb-3 last:border-0">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{line.product.name}</p>
+                {line.variant && (
+                  <p className="text-xs text-primary truncate">{variantText(line.variant)}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{formatPrice(line.product.price)} c/u</p>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -346,7 +390,7 @@ export default function VentasPage() {
                   variant="outline"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => changeQty(line.product.id, -1)}
+                  onClick={() => changeQty(lineKey(line), -1)}
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </Button>
@@ -355,7 +399,7 @@ export default function VentasPage() {
                   variant="outline"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => changeQty(line.product.id, 1)}
+                  onClick={() => changeQty(lineKey(line), 1)}
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
@@ -367,7 +411,7 @@ export default function VentasPage() {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => removeLine(line.product.id)}
+                onClick={() => removeLine(lineKey(line))}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
@@ -653,6 +697,7 @@ export default function VentasPage() {
                   <div key={idx} className="flex items-center justify-between text-muted-foreground">
                     <span>
                       {i.quantity}x {i.name}
+                      {i.variant && <span className="block text-xs">{i.variant}</span>}
                     </span>
                     <span>{formatPrice(i.price * i.quantity)}</span>
                   </div>
@@ -671,6 +716,18 @@ export default function VentasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VariantPickerDialog
+        product={pickerProduct}
+        open={!!pickerProduct}
+        onOpenChange={(open) => {
+          if (!open) setPickerProduct(null);
+        }}
+        confirmLabel="Agregar a la venta"
+        onConfirm={(picked) => {
+          if (pickerProduct) addToCart(pickerProduct, picked);
+        }}
+      />
     </div>
   );
 }

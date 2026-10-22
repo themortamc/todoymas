@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ShoppingCart, Heart, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/lib/cart-context';
@@ -12,6 +11,7 @@ import { formatPrice } from '@/lib/format';
 import type { Product, Category } from '@/lib/supabase';
 import { tintForCategory } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
+import { VariantPickerDialog } from '@/components/variant-picker-dialog';
 
 export function ProductCard({
   product,
@@ -21,11 +21,11 @@ export function ProductCard({
   /** Mapa id -> categoría, para pintar el chip de rubro con su color. Opcional. */
   categoryMap?: Record<string, Category>;
 }) {
-  const router = useRouter();
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useWishlist();
   const outOfStock = product.stock <= 0;
   const [imgError, setImgError] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const category = product.category_id ? categoryMap?.[product.category_id] : undefined;
   const tint = tintForCategory(category?.icon ?? product.category_id);
@@ -96,9 +96,9 @@ export function ProductCard({
           onClick={(e) => {
             e.preventDefault();
             if (product.has_variants) {
-              // Tiene variantes (color, aroma, talle...): hay que elegir
-              // una opción antes de agregar, así que llevamos a la ficha.
-              router.push(`/producto/${product.id}`);
+              // Tiene variantes (color, aroma, talle...): se elige la opción
+              // en una ventana, sin tener que entrar a la ficha.
+              setPickerOpen(true);
               return;
             }
             addItem(product, 1);
@@ -107,12 +107,22 @@ export function ProductCard({
           {outOfStock ? (
             'Sin stock'
           ) : product.has_variants ? (
-            <>Ver opciones <ArrowRight className="h-3.5 w-3.5" /></>
+            <><ShoppingCart className="h-3.5 w-3.5" /> Elegir opciones</>
           ) : (
             <><ShoppingCart className="h-3.5 w-3.5" /> Agregar al carrito</>
           )}
         </Button>
       </div>
+
+      {product.has_variants && (
+        <VariantPickerDialog
+          product={product}
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          confirmLabel="Agregar al carrito"
+          onConfirm={({ variant }) => addItem(product, 1, variant)}
+        />
+      )}
     </div>
   );
 }
