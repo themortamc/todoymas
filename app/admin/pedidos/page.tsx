@@ -55,10 +55,10 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
 
 const PAYMENT_LABEL: Record<string, string> = {
   efectivo: 'Efectivo',
-  tarjeta: 'Tarjeta',
+  tarjeta: 'Tarjetas',
   transferencia: 'Transferencia',
   mercadopago: 'Mercado Pago', // pedidos viejos, de antes de separar tarjeta/dinero
-  mercadopago_tarjeta: 'Mercado Pago (tarjeta)',
+  mercadopago_tarjeta: 'Tarjetas (Mercado Pago)',
   mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
   gocuotas: 'GoCuotas',
   otro: 'Otro',

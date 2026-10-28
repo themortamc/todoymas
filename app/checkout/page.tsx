@@ -18,7 +18,7 @@ import { formatPrice } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
-import { fetchSurcharges, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
+import { fetchSurcharges, onlineSurchargePercent, SURCHARGE_METHODS, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
 import { ReceiptUploader } from '@/components/receipt-uploader';
 
 export default function CheckoutPage() {
@@ -104,7 +104,10 @@ export default function CheckoutPage() {
   const isMercadoPago = form.payment_method === 'mercadopago_tarjeta' || form.payment_method === 'mercadopago_dinero';
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
   const subtotalWithShipping = total + actualShippingCost;
-  const surchargePercent = surcharges[form.payment_method] ?? 0;
+  const surchargePercent = onlineSurchargePercent(surcharges, form.payment_method);
+  const surchargeLabel = SURCHARGE_METHODS.online.find((m) => m.key === form.payment_method)?.label ?? 'Recargo';
+  // Aviso de recargo para mostrar en cada método de pago (vacío si no tiene).
+  const surchargeNote = (key: string) => ((surcharges[key] ?? 0) > 0 ? ` Recargo del ${surcharges[key]}%.` : '');
   const surchargeAmount = Math.round(subtotalWithShipping * (surchargePercent / 100) * 100) / 100;
   const grandTotal = subtotalWithShipping + surchargeAmount;
 
@@ -550,8 +553,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-mp-tarjeta" className="font-medium cursor-pointer">Tarjeta de crédito o débito</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Con Mercado Pago, cuotas incluidas.
-                      {(surcharges.mercadopago_tarjeta ?? 0) > 0 && ` Tiene un recargo del ${surcharges.mercadopago_tarjeta}%.`}
+                      Con Mercado Pago, cuotas incluidas.{surchargeNote('mercadopago_tarjeta')}
                     </p>
                   </div>
                 </div>
@@ -567,7 +569,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-mp-dinero" className="font-medium cursor-pointer">Dinero en cuenta de Mercado Pago</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pagás con el saldo disponible en tu cuenta de Mercado Pago, sin recargo.
+                      Pagás con el saldo disponible en tu cuenta de Mercado Pago.{surchargeNote('mercadopago_dinero') || ' Sin recargo.'}
                     </p>
                   </div>
                 </div>
@@ -583,7 +585,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-gocuotas" className="font-medium cursor-pointer">Cuotas sin tarjeta (GoCuotas)</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pagá en 2, 3 o 4 cuotas con tu tarjeta de débito. Te lleva a un checkout seguro de GoCuotas.
+                      Pagá en 2, 3 o 4 cuotas con tu tarjeta de débito. Te lleva a un checkout seguro de GoCuotas.{surchargeNote('gocuotas')}
                     </p>
                   </div>
                 </div>
@@ -623,7 +625,7 @@ export default function CheckoutPage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       {form.shipping_method === 'envio'
                         ? 'Solo disponible con retiro en local'
-                        : 'Pagás al retirar tu pedido en el local'}
+                        : `Pagás al retirar tu pedido en el local.${surchargeNote('efectivo')}`}
                     </p>
                   </div>
                 </div>
@@ -701,7 +703,7 @@ export default function CheckoutPage() {
                 {surchargePercent > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Recargo ({form.payment_method === 'gocuotas' ? 'GoCuotas' : 'tarjeta'} {surchargePercent}%)
+                      Recargo ({surchargeLabel} {surchargePercent}%)
                     </span>
                     <span>{formatPrice(surchargeAmount)}</span>
                   </div>

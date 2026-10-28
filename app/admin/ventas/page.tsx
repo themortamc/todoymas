@@ -52,16 +52,22 @@ type CartLine = { product: Product; quantity: number; variant?: CartVariant; var
 const lineKey = (l: CartLine) => cartLineKey(l.product.id, l.variant?.id);
 const variantText = (v?: CartVariant) => (v ? `${v.group_name}: ${v.label}` : undefined);
 
+// Formas de pago del mostrador: solo estas cuatro. Cada una tiene su recargo
+// configurable en Admin → Pagos (clave `mostrador_<value>`).
 const PAYMENT_METHODS = [
   { value: 'efectivo', label: 'Efectivo', icon: Banknote },
-  { value: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
-  { value: 'transferencia', label: 'Transferencia', icon: Landmark },
-  { value: 'otro', label: 'Otro', icon: Wallet },
+  { value: 'mercadopago', label: 'Mercado Pago', icon: Wallet },
+  { value: 'gocuotas', label: 'GoCuotas', icon: Landmark },
+  { value: 'tarjeta', label: 'Tarjetas', icon: CreditCard },
 ];
 
-const PAYMENT_LABEL: Record<string, string> = Object.fromEntries(
-  PAYMENT_METHODS.map((p) => [p.value, p.label])
-);
+// Incluye las formas de pago que ya no se ofrecen, para que las ventas
+// viejas sigan mostrándose bien en comprobantes y listados.
+const PAYMENT_LABEL: Record<string, string> = {
+  ...Object.fromEntries(PAYMENT_METHODS.map((p) => [p.value, p.label])),
+  transferencia: 'Transferencia',
+  otro: 'Otro',
+};
 
 const VISIBLE_LIMIT = 60;
 
@@ -436,6 +442,9 @@ export default function VentasPage() {
                 >
                   <m.icon className="h-4 w-4" />
                   <span className="text-[10px] leading-none">{m.label}</span>
+                  {(surcharges[`mostrador_${m.value}`] ?? 0) > 0 && (
+                    <span className="text-[9px] leading-none opacity-80">+{surcharges[`mostrador_${m.value}`]}%</span>
+                  )}
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>

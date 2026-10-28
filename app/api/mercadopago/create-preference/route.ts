@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     if (surchargeAmount > 0) {
       preferenceItems.push({
         id: 'recargo',
-        title: `Recargo tarjeta (${surchargePercent}%)`,
+        title: `Recargo ${paymentVariant === 'dinero' ? 'Mercado Pago' : 'tarjetas'} (${surchargePercent}%)`,
         quantity: 1,
         unit_price: surchargeAmount,
         currency_id: 'ARS',

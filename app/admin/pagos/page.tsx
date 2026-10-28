@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
+import { SURCHARGE_METHODS, type SurchargeScope } from '@/lib/surcharges';
 
 const MP_ERROR_MESSAGES: Record<string, string> = {
   cancelado: 'Cancelaste la conexión con Mercado Pago.',
@@ -19,35 +20,34 @@ const MP_ERROR_MESSAGES: Record<string, string> = {
   inesperado: 'Ocurrió un error inesperado al conectar. Probá de nuevo.',
 };
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  mercadopago_tarjeta: 'Mercado Pago — Tarjeta de crédito/débito',
-  mercadopago_dinero: 'Mercado Pago — Dinero en cuenta',
-  gocuotas: 'GoCuotas',
-  transferencia: 'Transferencia bancaria',
-  efectivo: 'Efectivo',
-  mostrador_tarjeta: 'Tarjeta de crédito/débito',
-  mostrador_efectivo: 'Efectivo',
-  mostrador_transferencia: 'Transferencia',
-  mostrador_otro: 'Otro',
-};
-
 const SURCHARGE_COPY = {
   online: {
     title: 'Recargos online',
     description:
-      'Se suman al total cuando el cliente paga desde la tienda online, según el método que elija en el checkout. Poné 0 para no cobrar recargo.',
+      'Se suman al total cuando el cliente paga desde la tienda online, según el método que elija en el checkout. Poné 0 para no cobrar recargo. La transferencia bancaria no lleva recargo.',
   },
   mostrador: {
     title: 'Recargos en mostrador',
     description:
-      'Se suman automáticamente al total cuando registrás una venta en mostrador, según el método de pago que elijas. Poné 0 para no cobrar recargo.',
+      'Se suman automáticamente al total cuando registrás una venta en mostrador, según la forma de pago que elijas. Poné 0 para no cobrar recargo.',
   },
 } as const;
 
-function SurchargesCard({ scope }: { scope: 'online' | 'mostrador' }) {
+// Acepta "18", "17.5" y "17,5". Devuelve null si no es un porcentaje válido.
+function parsePercent(text: string): number | null {
+  const clean = text.trim().replace(',', '.');
+  if (clean === '') return null;
+  const num = Number(clean);
+  if (Number.isNaN(num) || num < 0 || num > 100) return null;
+  return num;
+}
+
+function SurchargesCard({ scope }: { scope: SurchargeScope }) {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const [rows, setRows] = useState<{ payment_method: string; surcharge_percent: number }[]>([]);
+  const methods = SURCHARGE_METHODS[scope];
+  // Se guarda como texto para poder escribir decimales sin que el campo "salte".
+  const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -62,39 +62,59 @@ function SurchargesCard({ scope }: { scope: 'online' | 'mostrador' }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('payment_surcharges')
-      .select('payment_method, surcharge_percent')
-      .order('payment_method');
-    if (!error && data) {
-      const all = data as { payment_method: string; surcharge_percent: number }[];
-      setRows(all.filter((r) => r.payment_method.startsWith('mostrador_') === (scope === 'mostrador')));
+      .select('payment_method, surcharge_percent');
+    if (error) {
+      setErrorMsg(
+        `No pudimos cargar los recargos: ${error.message}. Revisá que hayas corrido las migraciones de recargos en Supabase.`
+      );
+    } else {
+      const byKey: Record<string, number> = {};
+      (data as { payment_method: string; surcharge_percent: number }[]).forEach((r) => {
+        byKey[r.payment_method] = Number(r.surcharge_percent);
+      });
+      const next: Record<string, string> = {};
+      methods.forEach((m) => {
+        next[m.key] = String(byKey[m.key] ?? 0);
+      });
+      setValues(next);
     }
     setLoading(false);
   }
 
-  function updateValue(method: string, value: string) {
-    const num = value === '' ? 0 : Number(value);
-    if (Number.isNaN(num)) return;
-    setRows((prev) => prev.map((r) => (r.payment_method === method ? { ...r, surcharge_percent: num } : r)));
-  }
-
   async function handleSave() {
-    setSaving(true);
     setNotice(null);
     setErrorMsg(null);
-    try {
-      for (const row of rows) {
-        const { error } = await supabase
-          .from('payment_surcharges')
-          .update({ surcharge_percent: row.surcharge_percent, updated_at: new Date().toISOString() })
-          .eq('payment_method', row.payment_method);
-        if (error) throw error;
+
+    const rows: { payment_method: string; surcharge_percent: number; updated_at: string }[] = [];
+    for (const m of methods) {
+      const pct = parsePercent(values[m.key] ?? '');
+      if (pct === null) {
+        setErrorMsg(`"${m.label}": poné un número entre 0 y 100.`);
+        return;
       }
-      setNotice('Recargos actualizados. Van a aplicarse desde el próximo pedido.');
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'No pudimos guardar los recargos.');
-    } finally {
-      setSaving(false);
+      rows.push({ payment_method: m.key, surcharge_percent: pct, updated_at: new Date().toISOString() });
     }
+
+    setSaving(true);
+    // upsert: si la fila no existía todavía la crea, en vez de no hacer nada.
+    // .select() devuelve las filas realmente guardadas, así detectamos si la
+    // base rechazó el cambio en silencio (por ejemplo, un usuario sin permiso).
+    const { data, error } = await supabase
+      .from('payment_surcharges')
+      .upsert(rows, { onConflict: 'payment_method' })
+      .select('payment_method');
+    setSaving(false);
+
+    if (error) {
+      setErrorMsg(`No pudimos guardar los recargos: ${error.message}`);
+      return;
+    }
+    if (!data || data.length !== rows.length) {
+      setErrorMsg('La base no aceptó el cambio. Solo un administrador puede modificar los recargos.');
+      return;
+    }
+    setValues(Object.fromEntries(rows.map((r) => [r.payment_method, String(r.surcharge_percent)])));
+    setNotice('Recargos guardados. Ya se aplican a las próximas ventas.');
   }
 
   return (
@@ -124,21 +144,19 @@ function SurchargesCard({ scope }: { scope: 'online' | 'mostrador' }) {
         ) : (
           <>
             <div className="space-y-3">
-              {rows.map((row) => (
-                <div key={row.payment_method} className="flex items-center justify-between gap-4">
-                  <Label className="flex-1 font-normal">
-                    {PAYMENT_METHOD_LABELS[row.payment_method] || row.payment_method}
+              {methods.map((m) => (
+                <div key={m.key} className="flex items-center justify-between gap-4">
+                  <Label htmlFor={`recargo-${m.key}`} className="flex-1 font-normal">
+                    {m.label}
                   </Label>
                   <div className="relative w-28 shrink-0">
                     <Input
-                      type="number"
+                      id={`recargo-${m.key}`}
+                      type="text"
                       inputMode="decimal"
-                      min={0}
-                      max={100}
-                      step="0.5"
                       disabled={!isAdmin}
-                      value={row.surcharge_percent}
-                      onChange={(e) => updateValue(row.payment_method, e.target.value)}
+                      value={values[m.key] ?? ''}
+                      onChange={(e) => setValues((prev) => ({ ...prev, [m.key]: e.target.value }))}
                       className="pr-7"
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
