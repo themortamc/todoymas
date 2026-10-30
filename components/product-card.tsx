@@ -66,6 +66,12 @@ export function ProductCard({
             />
           </button>
 
+          {product.on_sale && (
+            <span className="absolute top-2.5 left-2.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-foreground shadow-sm">
+              En oferta
+            </span>
+          )}
+
           {outOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-foreground/50">
               <Badge variant="destructive">Sin stock</Badge>

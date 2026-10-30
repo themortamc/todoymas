@@ -217,7 +217,7 @@ export default function HomePage() {
               <p className="relative text-primary-foreground/80 text-sm mt-2">
                 Productos seleccionados con los mejores precios.
               </p>
-              <Link href="/catalogo?destacados=true" className="relative mt-6">
+              <Link href="/catalogo?ofertas=true" className="relative mt-6">
                 <span className="inline-flex items-center gap-2 bg-brand-clay text-primary rounded-full px-6 py-2.5 text-sm font-semibold hover:-translate-y-0.5 transition-all shadow-soft">
                   Ver ofertas
                   <ArrowRight className="h-4 w-4" />

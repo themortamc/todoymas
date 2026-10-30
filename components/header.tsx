@@ -99,7 +99,7 @@ export function Header() {
                         Inicio
                       </Button>
                     </Link>
-                    <Link href="/catalogo?destacados=true" onClick={() => setMobileOpen(false)}>
+                    <Link href="/catalogo?ofertas=true" onClick={() => setMobileOpen(false)}>
                       <Button variant="ghost" size="sm" className="w-full justify-start">
                         Ofertas
                       </Button>
@@ -125,7 +125,7 @@ export function Header() {
             <nav className="hidden lg:flex items-center gap-1 mx-auto">
               {navLink('/', 'Inicio', pathname === '/')}
               <CategoryMenu />
-              {navLink('/catalogo?destacados=true', 'Ofertas', false)}
+              {navLink('/catalogo?ofertas=true', 'Ofertas', false)}
             </nav>
 
             {/* Desktop search */}

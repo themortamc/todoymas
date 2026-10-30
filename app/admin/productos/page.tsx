@@ -61,6 +61,7 @@ type FormState = {
   extra_category_ids: string[];
   images: string[];
   featured: boolean;
+  on_sale: boolean;
   variants: VariantFormRow[];
 };
 
@@ -75,6 +76,7 @@ const EMPTY_FORM: FormState = {
   extra_category_ids: [],
   images: [],
   featured: false,
+  on_sale: false,
   variants: [],
 };
 
@@ -89,6 +91,7 @@ export default function ProductosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const onSaleSupported = products.some((p) => p.on_sale !== undefined);
 
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -138,6 +141,7 @@ export default function ProductosPage() {
       extra_category_ids: extraMap[p.id] ?? [],
       images: p.images ?? [],
       featured: p.featured,
+      on_sale: p.on_sale ?? false,
       variants: [],
     });
     setDialogOpen(true);
@@ -196,6 +200,10 @@ export default function ProductosPage() {
       subcategory_id: form.subcategory_id === NONE ? null : form.subcategory_id,
       images: form.images,
       featured: form.featured,
+      // Si la migración de ofertas todavía no se corrió en Supabase, la
+      // columna no existe: no la mandamos para no romper el guardado de
+      // productos (activar "En oferta" sí va a avisar del error).
+      ...(onSaleSupported || form.on_sale ? { on_sale: form.on_sale } : {}),
     };
 
     const { data: savedProduct, error } = form.id
@@ -349,6 +357,9 @@ export default function ProductosPage() {
                     <span className="truncate max-w-[240px]">{p.name}</span>
                     {p.has_variants && (
                       <Badge variant="outline" className="text-[10px] shrink-0">Variantes</Badge>
+                    )}
+                    {p.on_sale && (
+                      <Badge className="text-[10px] shrink-0 bg-accent text-accent-foreground">En oferta</Badge>
                     )}
                   </div>
                 </TableCell>
@@ -512,6 +523,19 @@ export default function ProductosPage() {
               <Switch
                 checked={form.featured}
                 onCheckedChange={(v) => setForm({ ...form, featured: v })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">En oferta</p>
+                <p className="text-xs text-muted-foreground">
+                  Muestra la etiqueta &quot;En oferta&quot; en la tienda. No cambia el precio: cargalo vos arriba.
+                </p>
+              </div>
+              <Switch
+                checked={form.on_sale}
+                onCheckedChange={(v) => setForm({ ...form, on_sale: v })}
               />
             </div>
           </div>

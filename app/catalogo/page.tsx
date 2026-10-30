@@ -36,6 +36,7 @@ function CatalogContent() {
   const catSlug = searchParams.get('categoria') ?? '';
   const subSlug = searchParams.get('subcategoria') ?? '';
   const featuredOnly = searchParams.get('destacados') === 'true';
+  const onSaleOnly = searchParams.get('ofertas') === 'true';
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -49,6 +50,7 @@ function CatalogContent() {
   const [priceMax, setPriceMax] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('relevance');
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(featuredOnly);
+  const [showOnSaleOnly, setShowOnSaleOnly] = useState(onSaleOnly);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -56,7 +58,8 @@ function CatalogContent() {
     setSelectedCategory(catSlug);
     setSelectedSubcategory(subSlug);
     setShowFeaturedOnly(featuredOnly);
-  }, [query, catSlug, subSlug, featuredOnly]);
+    setShowOnSaleOnly(onSaleOnly);
+  }, [query, catSlug, subSlug, featuredOnly, onSaleOnly]);
 
   useEffect(() => {
     async function loadData() {
@@ -71,6 +74,9 @@ function CatalogContent() {
       if (showFeaturedOnly) {
         dbQuery = dbQuery.eq('featured', true);
       }
+      if (showOnSaleOnly) {
+        dbQuery = dbQuery.eq('on_sale', true);
+      }
 
       const [{ data: prods }, extras] = await Promise.all([
         dbQuery.order('created_at', { ascending: false }),
@@ -81,7 +87,7 @@ function CatalogContent() {
       setLoading(false);
     }
     loadData();
-  }, [showFeaturedOnly]);
+  }, [showFeaturedOnly, showOnSaleOnly]);
 
   const parents = useMemo(() => categories.filter(c => !c.parent_id), [categories]);
   const childrenOf = useMemo(() => {
@@ -156,6 +162,7 @@ function CatalogContent() {
   if (selectedCategory) activeFilters.push(parents.find(c => c.slug === selectedCategory)?.name ?? selectedCategory);
   if (selectedSubcategory) activeFilters.push(categories.find(c => c.slug === selectedSubcategory)?.name ?? selectedSubcategory);
   if (showFeaturedOnly) activeFilters.push('Destacados');
+  if (showOnSaleOnly) activeFilters.push('En oferta');
   if (priceMin) activeFilters.push(`Min: ${formatPrice(parseFloat(priceMin))}`);
   if (priceMax) activeFilters.push(`Max: ${formatPrice(parseFloat(priceMax))}`);
 
@@ -165,6 +172,7 @@ function CatalogContent() {
     setPriceMin('');
     setPriceMax('');
     setShowFeaturedOnly(false);
+    setShowOnSaleOnly(false);
   };
 
   const FiltersPanel = () => (
@@ -256,6 +264,15 @@ function CatalogContent() {
             className="h-4 w-4 rounded border-input"
           />
           <span className="text-sm">Solo productos destacados</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer mt-2">
+          <input
+            type="checkbox"
+            checked={showOnSaleOnly}
+            onChange={(e) => setShowOnSaleOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
+          <span className="text-sm">Solo productos en oferta</span>
         </label>
       </div>
 

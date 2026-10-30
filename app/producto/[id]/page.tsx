@@ -259,11 +259,14 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   Sin imagen
                 </div>
               )}
-              {product.featured && (
-                <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
-                  Destacado
-                </Badge>
-              )}
+              <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+                {product.on_sale && (
+                  <Badge className="bg-accent text-accent-foreground">En oferta</Badge>
+                )}
+                {product.featured && (
+                  <Badge className="bg-primary text-primary-foreground">Destacado</Badge>
+                )}
+              </div>
             </div>
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
