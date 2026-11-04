@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { ProductCard } from '@/components/product-card';
+import { PaginationControls } from '@/components/pagination-controls';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { LeafSprig, LeafBranch, Bloom, MandalaLine, Vine } from '@/components/decorative-plants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +32,8 @@ import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 
+const PAGE_SIZE = 24;
+
 function CatalogContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') ?? '';
@@ -51,6 +55,7 @@ function CatalogContent() {
   const [sortBy, setSortBy] = useState<string>('relevance');
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(featuredOnly);
   const [showOnSaleOnly, setShowOnSaleOnly] = useState(onSaleOnly);
+  const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -69,20 +74,20 @@ function CatalogContent() {
         .order('name');
       if (cats) setCategories(cats as Category[]);
 
-      let dbQuery = supabase.from('products').select('*');
+      // Se piden TODOS los productos (en tandas): Supabase corta cada
+      // consulta en ~1000 filas, y si no, los últimos nunca aparecerían.
+      const buildQuery = () => {
+        let q = supabase.from('products').select('*');
+        if (showFeaturedOnly) q = q.eq('featured', true);
+        if (showOnSaleOnly) q = q.eq('on_sale', true);
+        return q.order('created_at', { ascending: false }).order('id');
+      };
 
-      if (showFeaturedOnly) {
-        dbQuery = dbQuery.eq('featured', true);
-      }
-      if (showOnSaleOnly) {
-        dbQuery = dbQuery.eq('on_sale', true);
-      }
-
-      const [{ data: prods }, extras] = await Promise.all([
-        dbQuery.order('created_at', { ascending: false }),
+      const [prods, extras] = await Promise.all([
+        fetchAllRows<Product>(buildQuery),
         fetchExtraCategoryMap(),
       ]);
-      setProducts((prods as Product[]) ?? []);
+      setProducts(prods);
       setExtraMap(extras);
       setLoading(false);
     }
@@ -156,6 +161,22 @@ function CatalogContent() {
 
     return result;
   }, [products, query, selectedCategory, selectedSubcategory, priceMin, priceMax, sortBy, parents, categories, categoryMap, extraMap]);
+
+  // Páginas: 24 productos por página. Al cambiar cualquier filtro, búsqueda
+  // u orden se vuelve a la primera página.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageProducts = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filtered]);
+
+  const goToPage = (n: number) => {
+    setPage(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const activeFilters: string[] = [];
   if (query) activeFilters.push(`Búsqueda: "${query}"`);
@@ -385,11 +406,21 @@ function CatalogContent() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filtered.map((product) => (
-                  <ProductCard key={product.id} product={product} categoryMap={categoryMap} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {pageProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} categoryMap={categoryMap} />
+                  ))}
+                </div>
+                {pageCount > 1 && (
+                  <div className="mt-8 space-y-2">
+                    <p className="text-center text-xs text-muted-foreground">
+                      Mostrando {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} de {filtered.length}
+                    </p>
+                    <PaginationControls page={currentPage} pageCount={pageCount} onPageChange={goToPage} />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

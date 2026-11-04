@@ -1,4 +1,5 @@
 import { supabase, type Category, type Product } from './supabase';
+import { fetchAllRows } from './fetch-all';
 
 // product_id -> ids de las categorías ADICIONALES de ese producto
 export type ExtraCategoryMap = Record<string, string[]>;
@@ -8,12 +9,15 @@ export type ExtraCategoryMap = Record<string, string[]>;
 // mapa vacío: la tienda sigue funcionando con la categoría principal.
 export async function fetchExtraCategoryMap(): Promise<ExtraCategoryMap> {
   try {
-    const { data, error } = await supabase
-      .from('product_extra_categories')
-      .select('product_id, category_id');
-    if (error || !data) return {};
+    const rows = await fetchAllRows<{ product_id: string; category_id: string }>(() =>
+      supabase
+        .from('product_extra_categories')
+        .select('product_id, category_id')
+        .order('product_id')
+        .order('category_id')
+    );
     const map: ExtraCategoryMap = {};
-    for (const row of data as { product_id: string; category_id: string }[]) {
+    for (const row of rows) {
       (map[row.product_id] ??= []).push(row.category_id);
     }
     return map;

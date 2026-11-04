@@ -178,7 +178,8 @@ export default function CheckoutPage() {
 
         if (!prefRes.ok || !prefData.success) {
           setPaymentError(
-            prefData.error || 'No pudimos iniciar el pago con Mercado Pago. Probá con transferencia o efectivo.'
+            (prefData.error || 'No pudimos iniciar el pago con Mercado Pago. Probá con transferencia o efectivo.') +
+              (prefData.detail ? ` (Detalle: ${prefData.detail})` : '')
           );
           setProcessing(false);
           return;

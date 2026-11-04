@@ -41,6 +41,8 @@ import { formatPrice, formatDate } from '@/lib/format';
 import { fetchSurcharges, type SurchargeMap } from '@/lib/surcharges';
 import { cartLineKey, type CartVariant } from '@/lib/cart-context';
 import { VariantPickerDialog, type PickedVariant } from '@/components/variant-picker-dialog';
+import { PaginationControls } from '@/components/pagination-controls';
+import { fetchAllRows } from '@/lib/fetch-all';
 import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -69,7 +71,8 @@ const PAYMENT_LABEL: Record<string, string> = {
   otro: 'Otro',
 };
 
-const VISIBLE_LIMIT = 60;
+// Productos por página en la grilla del mostrador.
+const PAGE_SIZE = 48;
 
 function escapeHtml(value: string) {
   return value
@@ -147,6 +150,7 @@ export default function VentasPage() {
 
   const [cart, setCart] = useState<CartLine[]>([]);
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
+  const [page, setPage] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [customerName, setCustomerName] = useState('');
   const [discount, setDiscount] = useState('');
@@ -163,13 +167,15 @@ export default function VentasPage() {
 
   async function loadData() {
     setLoading(true);
-    const [{ data: prods }, { data: cats }, rates, extras] = await Promise.all([
-      supabase.from('products').select('*').order('name'),
+    // Se piden TODOS los productos (en tandas): Supabase corta cada consulta
+    // en ~1000 filas y, si no, los últimos nunca aparecerían en el mostrador.
+    const [prods, { data: cats }, rates, extras] = await Promise.all([
+      fetchAllRows<Product>(() => supabase.from('products').select('*').order('name').order('id')),
       supabase.from('categories').select('*').order('name'),
       fetchSurcharges(),
       fetchExtraCategoryMap(),
     ]);
-    setProducts((prods as Product[]) ?? []);
+    setProducts(prods);
     setCategories((cats as Category[]) ?? []);
     setSurcharges(rates);
     setExtraMap(extras);
@@ -214,7 +220,16 @@ export default function VentasPage() {
     });
   }, [products, search, categoryFilter, extraMap, categoryById]);
 
-  const visibleProducts = filteredProducts.slice(0, VISIBLE_LIMIT);
+  // Páginas de la grilla. Al buscar o cambiar de categoría se vuelve a la
+  // primera página.
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const visibleProducts = filteredProducts.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryFilter]);
 
   const cartQtyFor = (productId: string) =>
     cart.filter((l) => l.product.id === productId).reduce((sum, l) => sum + l.quantity, 0);
@@ -634,10 +649,14 @@ export default function VentasPage() {
             })}
           </div>
 
-          {filteredProducts.length > visibleProducts.length && (
-            <p className="text-center text-xs text-muted-foreground">
-              Mostrando {visibleProducts.length} de {filteredProducts.length}. Refiná la búsqueda para ver más.
-            </p>
+          {pageCount > 1 && (
+            <div className="space-y-2 pt-2">
+              <p className="text-center text-xs text-muted-foreground">
+                Mostrando {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredProducts.length)} de{' '}
+                {filteredProducts.length}
+              </p>
+              <PaginationControls page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+            </div>
           )}
         </div>
 

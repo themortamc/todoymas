@@ -35,8 +35,6 @@ const ONLY_CARDS_EXCLUDES = [
   { id: 'ticket' },
   { id: 'bank_transfer' },
   { id: 'atm' },
-  { id: 'digital_currency' },
-  { id: 'digital_wallet' },
 ];
 
 const ONLY_ACCOUNT_MONEY_EXCLUDES = [
@@ -46,8 +44,13 @@ const ONLY_ACCOUNT_MONEY_EXCLUDES = [
   { id: 'ticket' },
   { id: 'bank_transfer' },
   { id: 'atm' },
-  { id: 'digital_currency' },
 ];
+
+// Versión mínima de las listas de arriba, solo con lo imprescindible para que
+// el recargo nunca caiga sobre el medio de pago equivocado. Se usa de
+// respaldo si Mercado Pago rechaza la lista completa.
+const CARDS_CORE_EXCLUDES = [{ id: 'account_money' }, { id: 'ticket' }];
+const ACCOUNT_MONEY_CORE_EXCLUDES = [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'prepaid_card' }];
 
 // Splits "Juan Pérez" into { first_name: "Juan", last_name: "Pérez" } as
 // Mercado Pago expects separate name fields for the payer.
@@ -149,26 +152,49 @@ export async function POST(request: Request) {
       auto_return: 'approved',
       notification_url: `${siteUrl}/api/mercadopago/webhook`,
       statement_descriptor: 'TODOYMAS',
-      payment_methods: {
-        excluded_payment_types: paymentVariant === 'dinero' ? ONLY_ACCOUNT_MONEY_EXCLUDES : ONLY_CARDS_EXCLUDES,
-      },
     };
 
-    const mpRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preferencePayload),
-    });
+    const fullExcludes = paymentVariant === 'dinero' ? ONLY_ACCOUNT_MONEY_EXCLUDES : ONLY_CARDS_EXCLUDES;
+    const coreExcludes = paymentVariant === 'dinero' ? ACCOUNT_MONEY_CORE_EXCLUDES : CARDS_CORE_EXCLUDES;
 
-    const mpData = await mpRes.json();
+    const sendPreference = async (excluded: { id: string }[]) => {
+      const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          ...preferencePayload,
+          payment_methods: { excluded_payment_types: excluded },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    };
+
+    let { res: mpRes, data: mpData } = await sendPreference(fullExcludes);
+
+    // Si Mercado Pago rechaza la lista completa de medios excluidos, se
+    // reintenta una vez con la lista mínima en vez de dejar al cliente sin pagar.
+    if (!mpRes.ok) {
+      console.error('Mercado Pago preference error (intento 1):', JSON.stringify(mpData));
+      ({ res: mpRes, data: mpData } = await sendPreference(coreExcludes));
+    }
 
     if (!mpRes.ok) {
-      console.error('Mercado Pago preference error:', mpData);
+      console.error('Mercado Pago preference error (intento 2):', JSON.stringify(mpData));
+      // Motivo real que informa Mercado Pago, para poder diagnosticar el problema.
+      const causes = Array.isArray(mpData?.cause)
+        ? mpData.cause.map((c: { description?: string; code?: string | number }) => c.description || c.code).filter(Boolean)
+        : [];
+      const detail = [mpData?.message, ...causes].filter(Boolean).join(' · ') || `HTTP ${mpRes.status}`;
       return NextResponse.json(
-        { success: false, error: 'No pudimos iniciar el pago con Mercado Pago. Probá nuevamente.' },
+        {
+          success: false,
+          error: 'No pudimos iniciar el pago con Mercado Pago. Probá nuevamente.',
+          detail,
+        },
         { status: 502 }
       );
     }
