@@ -28,7 +28,7 @@ export async function sendPush(sub: StoredSubscription, payload: PushPayload): P
       return 'error';
     }
     const siteUrl = (
-      (await getServerEnv('NEXT_PUBLIC_SITE_URL')) || 'https://todoymas.lautaby12.workers.dev'
+      (await getServerEnv('NEXT_PUBLIC_SITE_URL')) || 'https://todoymas307.com.ar'
     ).replace(/\/$/, '');
 
     const { endpoint, headers, body } = await buildWebPushRequest({

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 
-Sitemap: https://todoymas.lautaby12.workers.dev/sitemap.xml
+Sitemap: https://todoymas307.com.ar/sitemap.xml
