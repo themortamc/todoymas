@@ -30,12 +30,13 @@ interface CreatePreferenceBody {
 // preferencia de "tarjeta" solo deje pagar con tarjeta, y la de "dinero"
 // solo deje pagar con el saldo de la cuenta de Mercado Pago - así el
 // recargo nunca termina aplicado al método equivocado.
-const ONLY_CARDS_EXCLUDES = [
-  { id: 'account_money' },
-  { id: 'ticket' },
-  { id: 'bank_transfer' },
-  { id: 'atm' },
-];
+// IMPORTANTE: Mercado Pago NO permite excluir "account_money" (dinero en
+// cuenta): devuelve el error "account_money cannot be excluded". Por eso la
+// preferencia de "tarjetas" solo puede sacar los otros medios (efectivo en
+// puntos de pago, transferencia, cajero); si la persona está logueada en
+// Mercado Pago, igual va a ver su saldo. En el checkout se le avisa que, para
+// pagar con saldo, tiene que elegir la otra opción (sin recargo).
+const ONLY_CARDS_EXCLUDES = [{ id: 'ticket' }, { id: 'bank_transfer' }, { id: 'atm' }];
 
 const ONLY_ACCOUNT_MONEY_EXCLUDES = [
   { id: 'credit_card' },
@@ -46,10 +47,9 @@ const ONLY_ACCOUNT_MONEY_EXCLUDES = [
   { id: 'atm' },
 ];
 
-// Versión mínima de las listas de arriba, solo con lo imprescindible para que
-// el recargo nunca caiga sobre el medio de pago equivocado. Se usa de
-// respaldo si Mercado Pago rechaza la lista completa.
-const CARDS_CORE_EXCLUDES = [{ id: 'account_money' }, { id: 'ticket' }];
+// Versión mínima de las listas de arriba, usada de respaldo si Mercado Pago
+// rechaza la lista completa.
+const CARDS_CORE_EXCLUDES = [{ id: 'ticket' }];
 const ACCOUNT_MONEY_CORE_EXCLUDES = [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'prepaid_card' }];
 
 // Splits "Juan Pérez" into { first_name: "Juan", last_name: "Pérez" } as

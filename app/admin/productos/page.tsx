@@ -425,6 +425,18 @@ export default function ProductosPage() {
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
                 />
+                {form.price !== '' && Number.isFinite(Number(form.price)) && (
+                  <p className="text-xs text-muted-foreground">
+                    Se va a mostrar como <span className="font-medium">{formatPrice(Number(form.price))}</span>
+                  </p>
+                )}
+                {form.price !== '' &&
+                  Number(form.price) > 0 &&
+                  (Number(form.price) < 100 || !Number.isInteger(Number(form.price))) && (
+                    <p className="text-xs text-destructive">
+                      ¿Seguro? Escribí el precio sin puntos ni comas: mil pesos es 1000 (si ponés 1.000 se guarda como $1).
+                    </p>
+                  )}
               </div>
               <div className="space-y-1.5">
                 <Label>Stock</Label>
