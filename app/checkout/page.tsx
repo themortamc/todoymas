@@ -36,7 +36,7 @@ export default function CheckoutPage() {
     shipping_method: 'retiro',
     address: '',
     city: '',
-    province: 'Mendoza',
+    province: '',
     postal_code: '',
     notes: '',
     // 'mercadopago_tarjeta' | 'mercadopago_dinero' | 'gocuotas' | 'transferencia' | 'efectivo'
@@ -47,6 +47,7 @@ export default function CheckoutPage() {
   const [calculatingShipping, setCalculatingShipping] = useState(false);
   const [shippingService, setShippingService] = useState('Correo Argentino');
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
   const [surcharges, setSurcharges] = useState<SurchargeMap>(DEFAULT_SURCHARGES);
 
   useEffect(() => {
@@ -80,29 +81,59 @@ export default function CheckoutPage() {
     'Tucumán',
   ];
 
-  const fetchShippingCost = async (cp: string, currentItems: typeof items) => {
-    if (!cp || cp.trim().length < 4) return;
-    setCalculatingShipping(true);
-    try {
-      const res = await fetch('/api/shipping', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postalCode: cp, items: currentItems }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setShippingCost(data.cost);
-        if (data.service) setShippingService(data.service);
-      }
-    } catch (err) {
-      console.error('Error fetching shipping:', err);
-    } finally {
+  const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
+
+  // Cotiza el envío cada vez que cambia el código postal, la provincia, la
+  // cantidad de productos o el método de entrega. Apenas algo cambia se
+  // descarta el costo anterior (nunca se cobra un envío viejo) y se ignoran
+  // las respuestas que lleguen tarde de una consulta ya reemplazada.
+  useEffect(() => {
+    const cp = form.postal_code.trim();
+    if (form.shipping_method !== 'envio' || cp.length < 4 || !form.province) {
+      setShippingCost(null);
       setCalculatingShipping(false);
+      setShippingError(null);
+      return;
     }
-  };
+
+    setShippingCost(null);
+    setShippingError(null);
+    setCalculatingShipping(true);
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/shipping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postalCode: cp, province: form.province, items: [{ quantity: itemCount }] }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success) {
+          setShippingCost(data.cost);
+          if (data.service) setShippingService(data.service);
+        } else {
+          setShippingError(data.error || 'No pudimos calcular el envío. Probá de nuevo.');
+        }
+      } catch (err) {
+        console.error('Error fetching shipping:', err);
+        if (!cancelled) setShippingError('No pudimos calcular el envío. Revisá tu conexión y probá de nuevo.');
+      } finally {
+        if (!cancelled) setCalculatingShipping(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [form.shipping_method, form.postal_code, form.province, itemCount]);
 
   const isMercadoPago = form.payment_method === 'mercadopago_tarjeta' || form.payment_method === 'mercadopago_dinero';
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
+  // Con envío a domicilio no se puede confirmar el pedido hasta tener el costo calculado.
+  const shippingReady = form.shipping_method !== 'envio' || (shippingCost !== null && !calculatingShipping);
   const subtotalWithShipping = total + actualShippingCost;
   const surchargePercent = onlineSurchargePercent(surcharges, form.payment_method);
   const surchargeLabel = SURCHARGE_METHODS.online.find((m) => m.key === form.payment_method)?.label ?? 'Recargo';
@@ -114,6 +145,10 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
+    if (!shippingReady) {
+      setError('Esperá a que se calcule el envío: completá el código postal y la provincia.');
+      return;
+    }
 
     setProcessing(true);
     setError(null);
@@ -448,11 +483,11 @@ export default function CheckoutPage() {
                     <p className="text-sm text-muted-foreground mt-1">Cotización automática por Código Postal</p>
                   </div>
                   <span className="font-semibold">
-                    {form.shipping_method === 'envio' && shippingCost === null
-                      ? '-'
-                      : calculatingShipping
+                    {calculatingShipping
                       ? 'Calculando...'
-                      : formatPrice(shippingCost ?? 0)}
+                      : shippingCost === null
+                      ? '-'
+                      : formatPrice(shippingCost)}
                   </span>
                 </div>
               </RadioGroup>
@@ -466,13 +501,8 @@ export default function CheckoutPage() {
                         id="postal_code"
                         required={form.shipping_method === 'envio'}
                         value={form.postal_code}
-                        onChange={(e) => {
-                          const cp = e.target.value;
-                          setForm({ ...form, postal_code: cp });
-                          if (cp.trim().length >= 4) {
-                            fetchShippingCost(cp, items);
-                          }
-                        }}
+                        minLength={4}
+                        onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
                         placeholder="5577"
                       />
                     </div>
@@ -694,10 +724,10 @@ export default function CheckoutPage() {
                   <span>
                     {form.shipping_method === 'retiro'
                       ? 'Gratis'
-                      : shippingCost === null
-                      ? '-'
                       : calculatingShipping
                       ? 'Calculando...'
+                      : shippingCost === null
+                      ? '-'
                       : formatPrice(shippingCost)}
                   </span>
                 </div>
@@ -716,11 +746,17 @@ export default function CheckoutPage() {
                 <span className="font-bold text-xl text-primary">{formatPrice(grandTotal)}</span>
               </div>
 
+              {form.shipping_method === 'envio' && !shippingReady && !calculatingShipping && (
+                <p className="text-sm text-muted-foreground">
+                  {shippingError ?? 'Completá el código postal y la provincia para calcular el envío.'}
+                </p>
+              )}
+
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
 
-              <Button type="submit" size="lg" className="w-full" disabled={processing}>
+              <Button type="submit" size="lg" className="w-full" disabled={processing || !shippingReady}>
                 {processing ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
