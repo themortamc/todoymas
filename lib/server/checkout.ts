@@ -37,6 +37,28 @@ export type PricedLine = {
   variant?: string;
 };
 
+export type LineDetail = { description: string; categoryId: string };
+
+// Categorías de producto que entiende Mercado Pago (item.category_id).
+const MP_CATEGORY_BY_STORE: Record<string, string> = {
+  electronica: 'electronics',
+  tecnologia: 'electronics',
+  electrodomesticos: 'home',
+  hogar: 'home',
+  bazar: 'home',
+  aromaterapia: 'home',
+  indumentaria: 'fashion',
+  'camping y aire libre': 'others',
+  belleza: 'others',
+  pesca: 'others',
+};
+
+function mpCategoryFor(categoryName?: string | null): string {
+  if (!categoryName) return 'others';
+  const key = categoryName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  return MP_CATEGORY_BY_STORE[key] ?? 'others';
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -76,7 +98,7 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
 
   const { data: products, error } = await db
     .from('products')
-    .select('id, name, price, images, category_id, weight_kg, length_cm, width_cm, height_cm')
+    .select('id, name, description, price, images, category_id, weight_kg, length_cm, width_cm, height_cm')
     .in('id', productIds);
   if (error) throw new CheckoutError('No pudimos leer los productos. Probá de nuevo.', 500);
 
@@ -99,6 +121,9 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
 
   const priced: PricedLine[] = [];
   const shippingItems: ShippingItem[] = [];
+  // Datos extra para Mercado Pago (descripción y categoría). No se guardan
+  // en el pedido: solo ayudan a que Mercado Pago apruebe más pagos.
+  const details: Record<string, LineDetail> = {};
   for (const line of lines) {
     const p = byId.get(line.product_id);
     if (!p) throw new CheckoutError('Un producto del carrito ya no está disponible. Sacalo y probá de nuevo.', 409);
@@ -116,6 +141,10 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
       quantity: line.quantity,
       image: v?.image_url || p.images?.[0] || '',
     });
+    details[p.id] = {
+      description: String(p.description || p.name).replace(/\s+/g, ' ').trim().slice(0, 250),
+      categoryId: mpCategoryFor(categoryName.get(p.category_id)),
+    };
     shippingItems.push({
       quantity: line.quantity,
       // Peso cargado en el panel si existe; si no, estimado por nombre/categoría.
@@ -127,7 +156,7 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
   }
 
   const subtotal = round2(priced.reduce((s, l) => s + l.price * l.quantity, 0));
-  return { lines: priced, shippingItems, subtotal };
+  return { lines: priced, shippingItems, subtotal, details };
 }
 
 export function quoteShippingFor(shippingItems: ShippingItem[], postalCode: unknown, province: unknown): ShippingQuote {
@@ -141,6 +170,7 @@ export function quoteShippingFor(shippingItems: ShippingItem[], postalCode: unkn
 
 export type CheckoutQuote = {
   lines: PricedLine[];
+  details: Record<string, LineDetail>;
   subtotal: number;
   shippingCost: number;
   shipping: ShippingQuote | null;
@@ -173,6 +203,7 @@ export async function quoteCheckout(
   const surchargeAmount = round2(base * (surchargePercent / 100));
   return {
     lines: cart.lines,
+    details: cart.details,
     subtotal: cart.subtotal,
     shippingCost,
     shipping,
@@ -220,6 +251,8 @@ export async function createMercadoPagoPreference(args: {
   const items: Record<string, unknown>[] = quote.lines.map((l) => ({
     id: l.product_id,
     title: (l.variant ? `${l.name} (${l.variant})` : l.name).slice(0, 250),
+    description: quote.details[l.product_id]?.description || undefined,
+    category_id: quote.details[l.product_id]?.categoryId || 'others',
     quantity: l.quantity,
     unit_price: l.price,
     currency_id: 'ARS',
@@ -262,7 +295,11 @@ export async function createMercadoPagoPreference(args: {
     const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ ...payload, payment_methods: { excluded_payment_types: excluded } }),
+      body: JSON.stringify({
+        ...payload,
+        // Solo 1 pago: sin cuotas (las cuotas sin interés las paga la tienda).
+        payment_methods: { excluded_payment_types: excluded, installments: 1 },
+      }),
     });
     const data = await res.json().catch(() => ({}));
     return { res, data };

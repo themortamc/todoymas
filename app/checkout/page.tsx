@@ -551,7 +551,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-mp-tarjeta" className="font-medium cursor-pointer">Tarjeta de crédito o débito</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Con Mercado Pago, cuotas incluidas.{surchargeNote('mercadopago_tarjeta')} Para pagar con el saldo de tu cuenta de Mercado Pago sin recargo, elegí transferencia.
+                      Con Mercado Pago, en 1 pago.{surchargeNote('mercadopago_tarjeta')} Para pagar con el saldo de tu cuenta de Mercado Pago sin recargo, elegí transferencia.
                     </p>
                   </div>
                 </div>
