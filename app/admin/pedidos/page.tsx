@@ -200,7 +200,7 @@ export default function PedidosPage() {
                     ) : (
                       <MapPin className="h-3.5 w-3.5" />
                     )}
-                    {o.shipping_method === 'envio' ? 'Envío' : 'Retiro'}
+                    {o.shipping_method !== 'envio' ? 'Retiro' : o.shipping_service === 'sucursal' ? 'Envío (sucursal)' : 'Envío'}
                   </span>
                 </TableCell>
                 <TableCell className="font-medium">{formatPrice(o.total)}</TableCell>
@@ -250,8 +250,20 @@ export default function PedidosPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Método de envío</p>
-                    <p>{selected.shipping_method === 'envio' ? 'Envío a domicilio' : 'Retiro en local'}</p>
+                    <p>
+                      {selected.shipping_method !== 'envio'
+                        ? 'Retiro en local'
+                        : selected.shipping_service === 'sucursal'
+                        ? 'Correo Argentino, a sucursal'
+                        : 'Correo Argentino, a domicilio'}
+                    </p>
                   </div>
+                  {selected.shipping_method === 'envio' && (
+                    <div>
+                      <p className="text-muted-foreground">Cobrado de envío</p>
+                      <p>{formatPrice(Number(selected.shipping_cost ?? 0))}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-muted-foreground">Fecha</p>
                     <p>{formatDate(selected.created_at)}</p>

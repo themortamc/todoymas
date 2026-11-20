@@ -15,7 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { OrganicBlob, LeafScatter, LeafSprig, LeafBranch, Bloom, MandalaLine, Vine } from '@/components/decorative-plants';
 import { useCart, cartLineKey } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
-import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
 import { fetchSurcharges, onlineSurchargePercent, SURCHARGE_METHODS, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
@@ -35,6 +34,8 @@ export default function CheckoutPage() {
     customer_email: '',
     customer_phone: '',
     shipping_method: 'retiro',
+    // Con envío: 'domicilio' o 'sucursal' (de Correo Argentino).
+    shipping_service: 'domicilio' as 'domicilio' | 'sucursal',
     address: '',
     city: '',
     province: '',
@@ -44,9 +45,9 @@ export default function CheckoutPage() {
     payment_method: 'mercadopago_tarjeta',
   });
 
-  const [shippingCost, setShippingCost] = useState<number | null>(null);
+  const [shippingQuote, setShippingQuote] = useState<{ domicilio: number; sucursal: number; weightKg: number } | null>(null);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
-  const [shippingService, setShippingService] = useState('Correo Argentino');
+  const [paidTotal, setPaidTotal] = useState<number | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [surcharges, setSurcharges] = useState<SurchargeMap>(DEFAULT_SURCHARGES);
@@ -82,22 +83,25 @@ export default function CheckoutPage() {
     'Tucumán',
   ];
 
-  const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
+  // Líneas del carrito tal como las recibe el servidor: solo ids y
+  // cantidades. Precios, peso y envío los saca el servidor de la base.
+  const cartLines = items.map((i) => ({ product_id: i.product.id, variant_id: i.variant?.id ?? null, quantity: i.quantity }));
+  const cartKey = cartLines.map((l) => `${l.product_id}:${l.variant_id ?? ''}:${l.quantity}`).join('|');
 
-  // Cotiza el envío cada vez que cambia el código postal, la provincia, la
-  // cantidad de productos o el método de entrega. Apenas algo cambia se
-  // descarta el costo anterior (nunca se cobra un envío viejo) y se ignoran
-  // las respuestas que lleguen tarde de una consulta ya reemplazada.
+  // Cotiza el envío cada vez que cambia el código postal, la provincia, el
+  // carrito o el método de entrega. Apenas algo cambia se descarta el costo
+  // anterior (nunca se muestra un envío viejo) y se ignoran las respuestas
+  // que lleguen tarde de una consulta ya reemplazada.
   useEffect(() => {
     const cp = form.postal_code.trim();
-    if (form.shipping_method !== 'envio' || cp.length < 4 || !form.province) {
-      setShippingCost(null);
+    if (form.shipping_method !== 'envio' || cp.length < 4 || !form.province || cartLines.length === 0) {
+      setShippingQuote(null);
       setCalculatingShipping(false);
       setShippingError(null);
       return;
     }
 
-    setShippingCost(null);
+    setShippingQuote(null);
     setShippingError(null);
     setCalculatingShipping(true);
     let cancelled = false;
@@ -107,13 +111,12 @@ export default function CheckoutPage() {
         const res = await fetch('/api/shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postalCode: cp, province: form.province, items: [{ quantity: itemCount }] }),
+          body: JSON.stringify({ postalCode: cp, province: form.province, items: cartLines }),
         });
         const data = await res.json();
         if (cancelled) return;
         if (data.success) {
-          setShippingCost(data.cost);
-          if (data.service) setShippingService(data.service);
+          setShippingQuote({ domicilio: data.domicilio, sucursal: data.sucursal, weightKg: data.weightKg });
         } else {
           setShippingError(data.error || 'No pudimos calcular el envío. Probá de nuevo.');
         }
@@ -129,9 +132,11 @@ export default function CheckoutPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [form.shipping_method, form.postal_code, form.province, itemCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.shipping_method, form.postal_code, form.province, cartKey]);
 
   const isMercadoPago = form.payment_method === 'mercadopago_tarjeta' || form.payment_method === 'mercadopago_dinero';
+  const shippingCost = shippingQuote ? shippingQuote[form.shipping_service] : null;
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
   // Con envío a domicilio no se puede confirmar el pedido hasta tener el costo calculado.
   const shippingReady = form.shipping_method !== 'envio' || (shippingCost !== null && !calculatingShipping);
@@ -155,150 +160,54 @@ export default function CheckoutPage() {
     setError(null);
     setPaymentError(null);
 
+    const isGateway = isMercadoPago || form.payment_method === 'gocuotas';
+
     try {
-      const orderItems = items.map(i => ({
-        product_id: i.product.id,
-        name: i.product.name,
-        price: i.product.price,
-        quantity: i.quantity,
-        image: i.variant?.image_url || i.product.images[0] || '',
-        variant: i.variant ? `${i.variant.group_name}: ${i.variant.label}` : undefined,
-      }));
-
-      const newOrderId = crypto.randomUUID();
-      const baseOrder = {
-        id: newOrderId,
-        customer_name: form.customer_name,
-        customer_email: form.customer_email || null,
-        customer_phone: form.customer_phone || null,
-        status: 'pendiente',
-        payment_method: form.payment_method,
-        payment_status: 'pendiente',
-        shipping_method: form.shipping_method,
-        address: form.shipping_method === 'envio' ? `${form.address}, ${form.city}, ${form.province} (CP: ${form.postal_code})` : null,
-        city: form.shipping_method === 'envio' ? `${form.city} (${form.province})` : null,
-        notes: form.notes || null,
-        // Estos dos son el cálculo local (para no dejar el campo vacío si
-        // por lo que sea no llega respuesta del servidor), pero para
-        // mercadopago/gocuotas se pisan abajo con el valor que el propio
-        // servidor usó para cobrar de verdad.
-        total: grandTotal,
-        surcharge_amount: surchargeAmount,
-        items: orderItems,
-      };
-
-      if (isMercadoPago) {
-        // 1. Create the Mercado Pago preference BEFORE inserting the order,
-        // so we can store its id and only redirect if it actually succeeded.
-        // El servidor recalcula el recargo de Mercado Pago por su cuenta
-        // (nunca confía en un total armado en el navegador), y la
-        // preferencia queda restringida a tarjeta o a dinero en cuenta
-        // según lo que eligió el cliente, para que el recargo nunca se
-        // aplique al método equivocado.
-        const prefRes = await fetch('/api/mercadopago/create-preference', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId: newOrderId,
-            items: orderItems,
-            shippingCost: actualShippingCost,
-            paymentVariant: form.payment_method === 'mercadopago_dinero' ? 'dinero' : 'tarjeta',
-            payer: {
-              name: form.customer_name,
-              email: form.customer_email || undefined,
-              phone: form.customer_phone || undefined,
-            },
-          }),
-        });
-        const prefData = await prefRes.json();
-
-        if (!prefRes.ok || !prefData.success) {
-          setPaymentError(
-            (prefData.error || 'No pudimos iniciar el pago con Mercado Pago. Probá con transferencia o efectivo.') +
-              (prefData.detail ? ` (Detalle: ${prefData.detail})` : '')
-          );
-          setProcessing(false);
-          return;
-        }
-
-        const { error: insertError } = await supabase.from('orders').insert({
-          ...baseOrder,
-          total: prefData.total ?? grandTotal,
-          surcharge_amount: prefData.surchargeAmount ?? surchargeAmount,
-          mp_preference_id: prefData.preferenceId,
-        });
-        if (insertError) throw insertError;
-
-        // Mercado Pago recién va a confirmar el pago en su webhook - el
-        // stock NO se toca acá, así que un cliente que abandona el
-        // checkout externo nunca deja mercadería "trabada".
-        clearCart();
-        window.location.href = prefData.initPoint;
-        return;
-      }
-
-      if (form.payment_method === 'gocuotas') {
-        // Mismo patrón: el servidor recalcula el recargo de GoCuotas por su
-        // cuenta a partir de los items, no confía en un monto armado acá.
-        const checkoutRes = await fetch('/api/gocuotas/create-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId: newOrderId,
-            items: orderItems,
-            shippingCost: actualShippingCost,
-            payer: {
-              email: form.customer_email || undefined,
-              phone: form.customer_phone || undefined,
-            },
-          }),
-        });
-        const checkoutData = await checkoutRes.json();
-
-        if (!checkoutRes.ok || !checkoutData.success) {
-          setPaymentError(
-            checkoutData.error || 'No pudimos iniciar el pago en cuotas con GoCuotas. Probá con otro método.'
-          );
-          setProcessing(false);
-          return;
-        }
-
-        const { error: insertError } = await supabase.from('orders').insert({
-          ...baseOrder,
-          total: checkoutData.total ?? grandTotal,
-          surcharge_amount: checkoutData.surchargeAmount ?? surchargeAmount,
-        });
-        if (insertError) throw insertError;
-
-        // Igual que con Mercado Pago: el stock se descuenta recién cuando
-        // el webhook de GoCuotas confirme el pago, no ahora.
-        clearCart();
-        window.location.href = checkoutData.initUrl;
-        return;
-      }
-
-      // Efectivo / transferencia: no hay pasarela externa, se consideran un
-      // pedido firme ya mismo, así que el stock se descuenta de una.
-      const { error: insertError } = await supabase.from('orders').insert(baseOrder);
-      if (insertError) throw insertError;
-
-      supabase.rpc('commit_order_stock', { p_order_id: newOrderId }).then(({ error: stockError }) => {
-        if (stockError) console.error('No se pudo descontar el stock del pedido:', stockError.message);
-      });
-
-      // Aviso al celular de la dueña (no bloquea ni rompe la compra si falla)
-      fetch('/api/notify-order', {
+      // El servidor arma el pedido: recalcula precios, envío, recargo y
+      // total desde la base, guarda el pedido y (si corresponde) crea el
+      // pago en Mercado Pago / GoCuotas. Acá solo se mandan ids, cantidades
+      // y los datos del cliente.
+      const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: newOrderId }),
-        keepalive: true,
-      }).catch(() => {});
+        body: JSON.stringify({
+          items: cartLines,
+          delivery: form.shipping_method === 'envio' ? form.shipping_service : 'retiro',
+          postalCode: form.postal_code,
+          province: form.province,
+          city: form.city,
+          address: form.address,
+          notes: form.notes,
+          paymentMethod: form.payment_method,
+          customer: {
+            name: form.customer_name,
+            email: form.customer_email,
+            phone: form.customer_phone,
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-      setOrderId(newOrderId);
-      setSuccess(true);
+      if (!res.ok || !data.success) {
+        const message = data.error || 'Ocurrió un error al procesar el pedido. Intentá nuevamente.';
+        if (isGateway) setPaymentError(message);
+        else setError(message);
+        return;
+      }
+
       clearCart();
+      if (data.redirectUrl) {
+        // Mercado Pago / GoCuotas confirman el pago en su webhook; el stock
+        // se descuenta recién ahí.
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      setOrderId(data.orderId);
+      setPaidTotal(typeof data.total === 'number' ? data.total : null);
+      setSuccess(true);
     } catch (err) {
-      setError('Ocurrió un error al procesar el pedido. Intentá nuevamente.');
+      setError('Ocurrió un error al procesar el pedido. Revisá tu conexión e intentá nuevamente.');
     } finally {
       setProcessing(false);
     }
@@ -324,6 +233,11 @@ export default function CheckoutPage() {
             </p>
             <p className="text-sm text-muted-foreground mb-6">
               Número de pedido: <span className="font-mono font-medium text-foreground">{orderId?.slice(0, 8)}</span>
+              {paidTotal !== null && (
+                <>
+                  {' · '}Total: <span className="font-medium text-foreground">{formatPrice(paidTotal)}</span>
+                </>
+              )}
             </p>
             <div className="rounded-3xl border border-border bg-card p-4 text-left mb-6 shadow-soft space-y-2">
               <p className="text-sm text-muted-foreground">Nos contactaremos a la brevedad para coordinar {form.shipping_method === 'retiro' ? 'el retiro en nuestro local' : 'la entrega'}.</p>
@@ -479,9 +393,9 @@ export default function CheckoutPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Truck className="h-4 w-4 text-primary" />
-                      <Label htmlFor="envio" className="font-medium cursor-pointer">Envío a domicilio (Correo Argentino)</Label>
+                      <Label htmlFor="envio" className="font-medium cursor-pointer">Envío por Correo Argentino</Label>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">Cotización automática por Código Postal</p>
+                    <p className="text-sm text-muted-foreground mt-1">A domicilio o a sucursal. Cotización automática por código postal, 2 a 5 días hábiles.</p>
                   </div>
                   <span className="font-semibold">
                     {calculatingShipping
@@ -503,6 +417,9 @@ export default function CheckoutPage() {
                         required={form.shipping_method === 'envio'}
                         value={form.postal_code}
                         minLength={4}
+                        maxLength={10}
+                        inputMode="text"
+                        autoComplete="postal-code"
                         onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
                         placeholder="5577"
                       />
@@ -526,6 +443,34 @@ export default function CheckoutPage() {
                       </Select>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">¿Dónde lo recibís?</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {([
+                        { key: 'domicilio', label: 'En tu domicilio', desc: 'El correo te lo lleva a tu casa.' },
+                        { key: 'sucursal', label: 'En una sucursal de Correo', desc: 'Lo retirás en la sucursal más cercana a tu código postal. Más barato.' },
+                      ] as const).map((opt) => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          aria-pressed={form.shipping_service === opt.key}
+                          onClick={() => setForm({ ...form, shipping_service: opt.key })}
+                          className={cn(
+                            'rounded-lg border p-3 text-left transition-colors',
+                            form.shipping_service === opt.key ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+                          )}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium">{opt.label}</span>
+                            <span className="text-sm font-semibold">
+                              {calculatingShipping ? '...' : shippingQuote ? formatPrice(shippingQuote[opt.key]) : '-'}
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">{opt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="city">Ciudad / Localidad *</Label>
@@ -537,16 +482,22 @@ export default function CheckoutPage() {
                         placeholder="Palmira"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Dirección de envío (Calle y número) *</Label>
-                      <Input
-                        id="address"
-                        required={form.shipping_method === 'envio'}
-                        value={form.address}
-                        onChange={(e) => setForm({ ...form, address: e.target.value })}
-                        placeholder="Av. San Martín 123"
-                      />
-                    </div>
+                    {form.shipping_service === 'domicilio' ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Dirección de envío (Calle y número) *</Label>
+                        <Input
+                          id="address"
+                          required
+                          value={form.address}
+                          onChange={(e) => setForm({ ...form, address: e.target.value })}
+                          placeholder="Av. San Martín 123"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground sm:pt-7">
+                        Te avisamos por WhatsApp a qué sucursal llega y el número de seguimiento.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -721,7 +672,10 @@ export default function CheckoutPage() {
                   <span>{formatPrice(total)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Envío</span>
+                  <span className="text-muted-foreground">
+                    Envío
+                    {form.shipping_method === 'envio' && (form.shipping_service === 'sucursal' ? ' a sucursal' : ' a domicilio')}
+                  </span>
                   <span>
                     {form.shipping_method === 'retiro'
                       ? 'Gratis'

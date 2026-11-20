@@ -63,6 +63,11 @@ type FormState = {
   featured: boolean;
   on_sale: boolean;
   variants: VariantFormRow[];
+  // Peso (kg) y medidas (cm) del producto embalado, para cotizar el envío.
+  weight_kg: string;
+  length_cm: string;
+  width_cm: string;
+  height_cm: string;
 };
 
 const EMPTY_FORM: FormState = {
@@ -78,7 +83,28 @@ const EMPTY_FORM: FormState = {
   featured: false,
   on_sale: false,
   variants: [],
+  weight_kg: '',
+  length_cm: '',
+  width_cm: '',
+  height_cm: '',
 };
+
+// '' o un valor no positivo -> null (sin dato).
+const positiveOrNull = (v: string) => {
+  const n = Number(String(v).replace(',', '.'));
+  return v.trim() !== '' && Number.isFinite(n) && n > 0 ? n : null;
+};
+
+// Peso que cobra Correo: el mayor entre el real y el volumétrico
+// (largo × ancho × alto / 6000; / 4000 si los lados suman más de 200 cm).
+function billableKg(form: FormState): { real: number | null; volumetric: number | null } {
+  const real = positiveOrNull(form.weight_kg);
+  const l = positiveOrNull(form.length_cm);
+  const w = positiveOrNull(form.width_cm);
+  const h = positiveOrNull(form.height_cm);
+  const volumetric = l && w && h ? (l * w * h) / (l + w + h > 200 ? 4000 : 6000) : null;
+  return { real, volumetric };
+}
 
 export default function ProductosPage() {
   const { toast } = useToast();
@@ -143,6 +169,10 @@ export default function ProductosPage() {
       featured: p.featured,
       on_sale: p.on_sale ?? false,
       variants: [],
+      weight_kg: p.weight_kg != null ? String(p.weight_kg) : '',
+      length_cm: p.length_cm != null ? String(p.length_cm) : '',
+      width_cm: p.width_cm != null ? String(p.width_cm) : '',
+      height_cm: p.height_cm != null ? String(p.height_cm) : '',
     });
     setDialogOpen(true);
 
@@ -204,6 +234,10 @@ export default function ProductosPage() {
       // columna no existe: no la mandamos para no romper el guardado de
       // productos (activar "En oferta" sí va a avisar del error).
       ...(onSaleSupported || form.on_sale ? { on_sale: form.on_sale } : {}),
+      weight_kg: positiveOrNull(form.weight_kg),
+      length_cm: positiveOrNull(form.length_cm),
+      width_cm: positiveOrNull(form.width_cm),
+      height_cm: positiveOrNull(form.height_cm),
     };
 
     const { data: savedProduct, error } = form.id
@@ -446,6 +480,48 @@ export default function ProductosPage() {
                   onChange={(e) => setForm({ ...form, stock: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2 rounded-lg border p-3">
+              <div>
+                <Label>Envío: peso y medidas del paquete</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Con la caja o bolsa en que lo mandás. Si lo dejás vacío se calcula como 0,5 kg por unidad.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([
+                  ['weight_kg', 'Peso (kg)', '0.3'],
+                  ['length_cm', 'Largo (cm)', '20'],
+                  ['width_cm', 'Ancho (cm)', '15'],
+                  ['height_cm', 'Alto (cm)', '10'],
+                ] as const).map(([key, label, ph]) => (
+                  <div key={key} className="space-y-1">
+                    <Label htmlFor={`ship-${key}`} className="text-xs font-normal text-muted-foreground">{label}</Label>
+                    <Input
+                      id={`ship-${key}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder={ph}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+              {(() => {
+                const { real, volumetric } = billableKg(form);
+                if (!real && !volumetric) return null;
+                const billed = Math.max(real ?? 0.5, volumetric ?? 0);
+                return (
+                  <p className="text-xs text-muted-foreground">
+                    Correo cobra por <span className="font-medium text-foreground">{billed.toLocaleString('es-AR', { maximumFractionDigits: 2 })} kg</span> por unidad
+                    {volumetric && (real ?? 0.5) < volumetric ? ' (por el tamaño de la caja, peso volumétrico)' : ''}.
+                  </p>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

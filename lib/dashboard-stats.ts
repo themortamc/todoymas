@@ -3,7 +3,7 @@ import type { Order, OrderItem } from './supabase';
 // Columnas de `orders` que necesita el dashboard (se piden solo estas para
 // no traer de más).
 export const DASHBOARD_ORDER_COLUMNS =
-  'id, customer_name, total, status, created_at, channel, payment_method, payment_status, shipping_method, surcharge_amount, items';
+  'id, customer_name, total, status, created_at, channel, payment_method, payment_status, shipping_method, shipping_cost, surcharge_amount, items';
 
 export type DashboardOrder = Pick<
   Order,
@@ -18,7 +18,7 @@ export type DashboardOrder = Pick<
   | 'shipping_method'
   | 'surcharge_amount'
   | 'items'
->;
+> & { shipping_cost?: number | null };
 
 export type Sale = DashboardOrder & { ts: number; amount: number };
 
@@ -92,11 +92,16 @@ export function statsWindowStart(now: Date): Date {
 
 // ---- ventas ----
 
-// Una "venta" es un pedido no cancelado y cuyo pago no fue rechazado.
+// Una "venta" es un pedido no cancelado y cuyo pago no fue rechazado. El
+// costo de envío no cuenta como venta: es plata que se le paga a Correo.
 export function toSales(orders: DashboardOrder[]): Sale[] {
   return orders
     .filter((o) => o.status !== 'cancelado' && o.payment_status !== 'rechazado')
-    .map((o) => ({ ...o, ts: new Date(o.created_at).getTime(), amount: Number(o.total ?? 0) }));
+    .map((o) => ({
+      ...o,
+      ts: new Date(o.created_at).getTime(),
+      amount: Number(o.total ?? 0) - Number(o.shipping_cost ?? 0),
+    }));
 }
 
 function sumRange(sales: Sale[], fromMs: number, toMs: number): Period {

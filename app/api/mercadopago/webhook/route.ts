@@ -84,15 +84,28 @@ export async function POST(request: Request) {
     // Only bump the fulfillment status forward on an approved payment, and
     // only if the order is still in its initial state - never override a
     // status the store owner already advanced manually (e.g. 'enviado').
+    // Si lo que se pagó es menos que el total del pedido, no se confirma ni
+    // se descuenta stock: queda para revisar a mano.
+    let confirmable = false;
     if (paymentStatus === 'aprobado') {
       const { data: existingOrder } = await supabaseAdmin
         .from('orders')
-        .select('status')
+        .select('status, total')
         .eq('id', orderId)
         .single();
 
-      if (existingOrder?.status === 'pendiente') {
-        updatePayload.status = 'confirmado';
+      const paid = Number(payment.transaction_amount);
+      const expected = Number(existingOrder?.total);
+      const underpaid = Number.isFinite(paid) && Number.isFinite(expected) && paid + 1 < expected;
+      if (underpaid) {
+        console.error(
+          `Pago de Mercado Pago ${payment.id} por $${paid} menor al total del pedido ${orderId} ($${expected}). No se confirma.`
+        );
+      } else {
+        confirmable = true;
+        if (existingOrder?.status === 'pendiente') {
+          updatePayload.status = 'confirmado';
+        }
       }
     }
 
@@ -105,10 +118,7 @@ export async function POST(request: Request) {
       console.error('Error updating order from Mercado Pago webhook:', updateError);
     }
 
-    if (!updateError && paymentStatus === 'aprobado') {
-      // Recién acá se descuenta stock de verdad - commit_order_stock es
-      // idempotente (seguro llamarlo de nuevo si Mercado Pago reintenta el
-      // webhook), así que no hace falta ningún chequeo extra.
+    if (!updateError && confirmable) {
       const { error: stockError } = await supabaseAdmin.rpc('commit_order_stock', { p_order_id: orderId });
       if (stockError) {
         console.error('Error descontando stock desde el webhook de Mercado Pago:', stockError);

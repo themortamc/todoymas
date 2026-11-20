@@ -1,44 +1,30 @@
 import { NextResponse } from 'next/server';
-import { calculateShipping } from '@/lib/shipping';
+import { CheckoutError, getPublicSupabase, loadCart, quoteShippingFor } from '@/lib/server/checkout';
 
-interface QuoteItem {
-  quantity: number;
-}
-
+// Cotización de envío para mostrar en el checkout. El peso sale de los
+// productos de la base (no de lo que mande el navegador). El cobro real se
+// vuelve a calcular en /api/checkout, así que esto es solo informativo.
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { postalCode, province, items } = body as {
-      postalCode: string;
-      province?: string;
-      items?: QuoteItem[];
-    };
-
-    if (!postalCode || postalCode.trim().length < 4) {
-      return NextResponse.json(
-        { success: false, error: 'Código postal inválido' },
-        { status: 400 }
-      );
-    }
-
-    // El cálculo (zonas, peso estimado y tarifas) vive en lib/shipping.ts.
-    const itemCount = Array.isArray(items)
-      ? items.reduce((acc, item) => acc + (Number(item?.quantity) || 0), 0)
-      : 0;
-    const { cost, zone } = calculateShipping({ postalCode, province, itemCount });
+    const body = await request.json().catch(() => ({}));
+    const db = await getPublicSupabase();
+    const cart = await loadCart(db, body?.items);
+    const quote = quoteShippingFor(cart.shippingItems, body?.postalCode, body?.province);
 
     return NextResponse.json({
       success: true,
-      cost,
-      zone,
-      estimatedDays: '3 a 5 días hábiles',
-      service: 'Correo Argentino - Paq.ar (Desde Mendoza Palmira)',
+      zone: quote.zone,
+      weightKg: quote.weightKg,
+      domicilio: quote.domicilio,
+      sucursal: quote.sucursal,
+      estimatedDays: '2 a 5 días hábiles',
+      service: 'Correo Argentino - Clásico',
     });
   } catch (error) {
+    if (error instanceof CheckoutError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+    }
     console.error('Error in shipping calculation API:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al calcular el costo de envío' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Error al calcular el costo de envío' }, { status: 500 });
   }
 }
