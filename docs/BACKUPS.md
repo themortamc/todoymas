@@ -7,7 +7,7 @@ Cada lunes a las 03:00 (Argentina) corre `.github/workflows/backup.yml`. Copia l
 En GitHub: Settings → Secrets and variables → Actions → New repository secret.
 
 1. `SUPABASE_DB_URL`: en Supabase, botón **Connect** → **Session pooler** (no "Direct connection": GitHub no tiene IPv6). Copiá la URI y reemplazá `[YOUR-PASSWORD]` por la contraseña de la base.
-2. `BACKUP_PASSPHRASE`: una contraseña larga (20+ caracteres), por ejemplo la salida de `openssl rand -base64 32`. **Guardala en tu gestor de contraseñas: sin ella los backups no se pueden abrir.**
+2. `BACKUP_PASSPHRASE`: la contraseña con la que se cifra el backup (mínimo 8 caracteres). **Guardala en tu gestor de contraseñas: sin ella los backups no se pueden abrir.**
 
 Para probar: Actions → "Backup semanal" → **Run workflow**.
 

@@ -38,8 +38,8 @@ jobs:
             echo "::error::Faltan los secretos SUPABASE_DB_URL y/o BACKUP_PASSPHRASE (ver docs/BACKUPS.md)"
             exit 1
           fi
-          if [ ${#BACKUP_PASSPHRASE} -lt 20 ]; then
-            echo "::error::BACKUP_PASSPHRASE es muy corta: usá al menos 20 caracteres"
+          if [ ${#BACKUP_PASSPHRASE} -lt 8 ]; then
+            echo "::error::BACKUP_PASSPHRASE es muy corta: usá al menos 8 caracteres"
             exit 1
           fi
 
