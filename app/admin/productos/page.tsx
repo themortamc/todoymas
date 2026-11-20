@@ -486,7 +486,7 @@ export default function ProductosPage() {
               <div>
                 <Label>Envío: peso y medidas del paquete</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Con la caja o bolsa en que lo mandás. Si lo dejás vacío se calcula como 0,5 kg por unidad.
+                  Opcional. Con la caja o bolsa en que lo mandás. Si lo dejás vacío, el peso se estima solo según el nombre y la categoría del producto.
                 </p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

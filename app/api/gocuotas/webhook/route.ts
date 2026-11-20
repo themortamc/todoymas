@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { notifyOrderOnce } from '@/lib/server/notify';
 import { createClient } from '@supabase/supabase-js';
+import { verifyGocuotasWebhookToken } from '@/lib/server/webhook-token';
 
 // GoCuotas calls this URL (set as webhook_url when creating the checkout)
 // with a body like:
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
+    // Seguridad: la URL del webhook lleva una firma por pedido que solo
+    // conoce el servidor (ver lib/server/webhook-token.ts). Sin firma válida
+    // no se toca el pedido: si no, cualquiera podía marcarlo como pagado.
+    const token = new URL(request.url).searchParams.get('token');
+    if (!(await verifyGocuotasWebhookToken(String(orderId), token))) {
+      console.error(`Webhook de GoCuotas rechazado: firma inválida para el pedido ${orderId}`);
+      return NextResponse.json({ received: false }, { status: 401 });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -63,15 +73,26 @@ export async function POST(request: Request) {
 
     // Same rule as the Mercado Pago webhook: only bump fulfillment status
     // forward on approval, and only if it's still in its initial state.
+    // Si el monto informado es menor que el total del pedido, no se confirma
+    // ni se descuenta stock: queda para revisar a mano.
+    let confirmable = false;
     if (paymentStatus === 'aprobado') {
       const { data: existingOrder } = await supabaseAdmin
         .from('orders')
-        .select('status')
+        .select('status, total')
         .eq('id', orderId)
         .single();
 
-      if (existingOrder?.status === 'pendiente') {
-        updatePayload.status = 'confirmado';
+      const paidCents = Number(body?.amount_in_cents);
+      const expectedCents = Math.round(Number(existingOrder?.total) * 100);
+      const underpaid = Number.isFinite(paidCents) && Number.isFinite(expectedCents) && paidCents + 100 < expectedCents;
+      if (underpaid) {
+        console.error(`GoCuotas informó $${paidCents / 100} para el pedido ${orderId} (total $${expectedCents / 100}). No se confirma.`);
+      } else {
+        confirmable = true;
+        if (existingOrder?.status === 'pendiente') {
+          updatePayload.status = 'confirmado';
+        }
       }
     }
 
@@ -84,7 +105,7 @@ export async function POST(request: Request) {
       console.error('Error updating order from GoCuotas webhook:', updateError);
     }
 
-    if (!updateError && paymentStatus === 'aprobado') {
+    if (!updateError && confirmable) {
       // Recién acá se descuenta stock de verdad - commit_order_stock es
       // idempotente (seguro llamarlo de nuevo si GoCuotas reintenta el
       // webhook), así que no hace falta ningún chequeo extra.

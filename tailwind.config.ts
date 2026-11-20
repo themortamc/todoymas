@@ -9,6 +9,18 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Tailwind 3.3 no trae estos pasos de opacidad (llegaron en 3.4). Sin
+      // ellos, clases como text-primary/15 no se generan y los adornos SVG
+      // toman el color del texto: así aparecía un círculo oscuro tapando el
+      // carrito vacío.
+      opacity: {
+        '15': '0.15',
+        '35': '0.35',
+        '45': '0.45',
+        '55': '0.55',
+        '65': '0.65',
+        '85': '0.85',
+      },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'Georgia', 'serif'],

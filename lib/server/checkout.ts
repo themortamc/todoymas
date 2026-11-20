@@ -8,6 +8,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getServerEnv } from '@/lib/server/env';
 import { calculateShipping, ShippingError, type ShippingItem, type ShippingQuote, type ShippingService } from '@/lib/shipping';
 import { ONLINE_SURCHARGE_KEYS } from '@/lib/surcharges';
+import { estimateWeightKg } from '@/lib/shipping-weights';
+import { gocuotasWebhookToken } from '@/lib/server/webhook-token';
 
 export class CheckoutError extends Error {
   status: number;
@@ -74,9 +76,13 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
 
   const { data: products, error } = await db
     .from('products')
-    .select('id, name, price, images, weight_kg, length_cm, width_cm, height_cm')
+    .select('id, name, price, images, category_id, weight_kg, length_cm, width_cm, height_cm')
     .in('id', productIds);
   if (error) throw new CheckoutError('No pudimos leer los productos. Probá de nuevo.', 500);
+
+  // Nombres de categoría, para estimar el peso de los productos sin peso cargado.
+  const { data: categories } = await db.from('categories').select('id, name');
+  const categoryName = new Map((categories ?? []).map((c: any) => [c.id, c.name as string]));
 
   let variants: any[] = [];
   if (variantIds.length > 0) {
@@ -112,7 +118,8 @@ export async function loadCart(db: SupabaseClient, rawLines: unknown) {
     });
     shippingItems.push({
       quantity: line.quantity,
-      weightKg: p.weight_kg,
+      // Peso cargado en el panel si existe; si no, estimado por nombre/categoría.
+      weightKg: p.weight_kg ?? estimateWeightKg(p.name, categoryName.get(p.category_id)),
       lengthCm: p.length_cm,
       widthCm: p.width_cm,
       heightCm: p.height_cm,
@@ -326,7 +333,8 @@ export async function createGoCuotasCheckout(args: {
       url_success: `${siteUrl}/checkout/retorno?order=${orderId}`,
       url_failure: `${siteUrl}/checkout/retorno?order=${orderId}`,
       order_reference_id: orderId,
-      webhook_url: `${siteUrl}/api/gocuotas/webhook`,
+      // Firmada por pedido: el webhook rechaza llamadas sin esta firma.
+      webhook_url: `${siteUrl}/api/gocuotas/webhook?token=${await gocuotasWebhookToken(orderId)}`,
       email: payer.email || '',
       phone_number: payer.phone || '',
     }),
