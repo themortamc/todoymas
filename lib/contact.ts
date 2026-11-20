@@ -7,8 +7,8 @@ export const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb7c5BEJJh
 // banco). Recibir una transferencia no tiene comisión, a diferencia de cobrar
 // por el checkout de Mercado Pago (~8%). Si TRANSFER_ALIAS queda vacío, la
 // pantalla de pedido realizado manda a coordinar los datos por WhatsApp.
-export const TRANSFER_ALIAS = '';
-export const TRANSFER_HOLDER = '';
+export const TRANSFER_ALIAS = 'cedai.vane.vega';
+export const TRANSFER_HOLDER = 'Vanesa Beatriz Vega';
 
 export const INSTAGRAM_HANDLE = 'todoymas307';
 export const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_HANDLE}`;
