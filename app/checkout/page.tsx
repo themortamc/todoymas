@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { WHATSAPP_NUMBER } from '@/lib/contact';
 import { fetchSurcharges, onlineSurchargePercent, SURCHARGE_METHODS, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
 import { ReceiptUploader } from '@/components/receipt-uploader';
+import { CdnImg } from '@/components/cdn-img';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -693,7 +694,7 @@ export default function CheckoutPage() {
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted">
                       {(item.variant?.image_url || item.product.images[0]) && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.variant?.image_url || item.product.images[0]} alt={item.product.name} className="h-full w-full object-cover" />
+                        <CdnImg src={item.variant?.image_url || item.product.images[0]} alt={item.product.name} className="h-full w-full object-cover" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

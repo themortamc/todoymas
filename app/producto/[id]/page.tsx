@@ -14,6 +14,7 @@ import { supabase, type Product, type Category, type ProductVariant } from '@/li
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { ProductComments } from '@/components/product-comments';
+import { CdnImg } from '@/components/cdn-img';
 
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -248,7 +249,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <div className="relative aspect-square overflow-hidden rounded-xl border bg-muted">
               {images[selectedImage] && !imgErrors[selectedImage] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <CdnImg
                   src={images[selectedImage]}
                   alt={product.name}
                   onError={() => setImgErrors((prev) => ({ ...prev, [selectedImage]: true }))}
@@ -281,7 +282,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   >
                     {img && !imgErrors[i] && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <CdnImg
                         src={img}
                         alt={`${product.name} ${i + 1}`}
                         onError={() => setImgErrors((prev) => ({ ...prev, [i]: true }))}
@@ -355,7 +356,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                               )}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={opt.image_url} alt={opt.label} className="h-full w-full object-cover" />
+                              <CdnImg src={opt.image_url} alt={opt.label} className="h-full w-full object-cover" />
                               {isSelected && (
                                 <span className="absolute inset-0 flex items-center justify-center bg-foreground/20">
                                   <Check className="h-5 w-5 text-brand-cream drop-shadow" />
@@ -520,7 +521,7 @@ function ProductCardMini({ product }: { product: Product }) {
         <div className="relative aspect-square overflow-hidden bg-muted">
           {product.images[0] && !imgError && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <CdnImg
               src={product.images[0]}
               alt={product.name}
               onError={() => setImgError(true)}

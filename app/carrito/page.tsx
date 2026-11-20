@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { LeafSprig, LeafBranch, OrganicBlob, Bloom, MandalaLine, Vine } from '@/components/decorative-plants';
 import { useCart, cartLineKey } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
+import { CdnImg } from '@/components/cdn-img';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart();
@@ -58,7 +59,7 @@ export default function CartPage() {
                     <div className="h-24 w-24 overflow-hidden rounded-lg border bg-muted">
                       {(item.variant?.image_url || item.product.images[0]) && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <CdnImg
                           src={item.variant?.image_url || item.product.images[0]}
                           alt={item.product.name}
                           className="h-full w-full object-cover"

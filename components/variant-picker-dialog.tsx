@@ -15,6 +15,7 @@ import { supabase, type Product, type ProductVariant } from '@/lib/supabase';
 import type { CartVariant } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { CdnImg } from '@/components/cdn-img';
 
 export type PickedVariant = {
   variant: CartVariant;
@@ -131,7 +132,7 @@ export function VariantPickerDialog({
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted">
             {previewImage && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewImage} alt={product?.name ?? ''} className="h-full w-full object-cover" />
+              <CdnImg src={previewImage} alt={product?.name ?? ''} className="h-full w-full object-cover" />
             )}
           </div>
           <div className="flex-1 min-w-0 text-sm text-muted-foreground self-center">
@@ -177,7 +178,7 @@ export function VariantPickerDialog({
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={opt.image_url} alt={opt.label} className="h-full w-full object-cover" />
+                          <CdnImg src={opt.image_url} alt={opt.label} className="h-full w-full object-cover" />
                           {isSelected && (
                             <span className="absolute inset-0 flex items-center justify-center bg-foreground/20">
                               <Check className="h-5 w-5 text-brand-cream drop-shadow" />

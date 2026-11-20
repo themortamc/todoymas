@@ -12,6 +12,7 @@ import type { Product, Category } from '@/lib/supabase';
 import { tintForCategory } from '@/lib/category-icons';
 import { cn } from '@/lib/utils';
 import { VariantPickerDialog } from '@/components/variant-picker-dialog';
+import { CdnImg } from '@/components/cdn-img';
 
 export function ProductCard({
   product,
@@ -37,7 +38,7 @@ export function ProductCard({
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {product.images[0] && !imgError ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <CdnImg
               src={product.images[0]}
               alt={product.name}
               onError={() => setImgError(true)}

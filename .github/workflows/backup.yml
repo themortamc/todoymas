@@ -1,0 +1,97 @@
+# Backup semanal de la tienda: base de datos + fotos de productos.
+#
+# - Solo LEE la base (pg_dump vía Supabase CLI): no modifica ni bloquea nada.
+# - El repo es público y los artifacts se pueden descargar: por eso el backup
+#   se cifra con AES-256 y una contraseña (secreto BACKUP_PASSPHRASE) antes de
+#   subirlo. Sin esa contraseña el archivo no sirve para nada.
+# - No imprime datos en el log (los logs de un repo público son públicos).
+#
+# Configuración y cómo restaurar: docs/BACKUPS.md
+
+name: Backup semanal
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # lunes 03:00 (hora de Argentina)
+  workflow_dispatch: # botón "Run workflow" para correrlo a mano
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      SITE_URL: https://todoymas307.com.ar
+      SUPABASE_PUBLIC_STORAGE: https://himmrfizkdtioivcrbdg.supabase.co/storage/v1/object/public
+    steps:
+      - name: Verificar configuración
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Faltan los secretos SUPABASE_DB_URL y/o BACKUP_PASSPHRASE (ver docs/BACKUPS.md)"
+            exit 1
+          fi
+          if [ ${#BACKUP_PASSPHRASE} -lt 20 ]; then
+            echo "::error::BACKUP_PASSPHRASE es muy corta: usá al menos 20 caracteres"
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Volcar la base de datos (solo lectura)
+        run: |
+          mkdir -p backup/db
+          supabase db dump --db-url "$DB_URL" --role-only -f backup/db/roles.sql
+          supabase db dump --db-url "$DB_URL" -f backup/db/schema.sql
+          supabase db dump --db-url "$DB_URL" --data-only --use-copy -f backup/db/data.sql
+          for f in backup/db/*.sql; do
+            if [ ! -s "$f" ]; then echo "::error::$f quedó vacío"; exit 1; fi
+          done
+          echo "Base volcada: $(du -sh backup/db | cut -f1)"
+
+      - name: Copiar fotos de productos
+        run: |
+          mkdir -p backup/product-images
+          psql "$DB_URL" -At -v ON_ERROR_STOP=1 \
+            -c "select name from storage.objects where bucket_id = 'product-images' order by name" \
+            > backup/product-images.txt
+          total=$(wc -l < backup/product-images.txt)
+          fallidas=0
+          while IFS= read -r name; do
+            case "$name" in ''|*/*|*..*) continue ;; esac
+            # Primero por el caché de Cloudflare (no gasta egress de Supabase);
+            # si falla, directo desde Supabase.
+            curl -sf --retry 2 -o "backup/product-images/$name" "$SITE_URL/img/product-images/$name" \
+              || curl -sf --retry 2 -o "backup/product-images/$name" "$SUPABASE_PUBLIC_STORAGE/product-images/$name" \
+              || fallidas=$((fallidas + 1))
+          done < backup/product-images.txt
+          echo "Fotos: $((total - fallidas)) de $total copiadas"
+          if [ "$fallidas" -gt 0 ]; then echo "::warning::No se pudieron copiar $fallidas fotos"; fi
+
+      - name: Comprimir y cifrar
+        run: |
+          name="todoymas-backup-$(date -u +%Y-%m-%d)"
+          tar -czf "$name.tar.gz" -C backup .
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            -o "$name.tar.gz.gpg" "$name.tar.gz"
+          rm -rf backup "$name.tar.gz"
+          echo "BACKUP_FILE=$name.tar.gz.gpg" >> "$GITHUB_ENV"
+          echo "Backup cifrado: $(du -h "$name.tar.gz.gpg" | cut -f1)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error
