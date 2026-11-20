@@ -2,6 +2,7 @@
   "name": "todoymas",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "cf-build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
     "build": "next build",

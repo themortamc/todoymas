@@ -189,6 +189,10 @@ lib/
 supabase/migrations/  esquema, RLS, RPCs y triggers versionados
 ```
 
+## 📄 Licencia
+
+**Todos los derechos reservados.** El código se publica solo para que se pueda ver como parte de mi portafolio: no se puede copiar ni reutilizar sin permiso. La marca, el logo y las imágenes de productos pertenecen a la tienda. Ver [LICENSE](LICENSE).
+
 ---
 
 <div align="center">
