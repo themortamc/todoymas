@@ -3,13 +3,14 @@ import { supabase } from './supabase';
 export type SurchargeMap = Record<string, number>;
 export type SurchargeScope = 'online' | 'mostrador';
 
-// Los únicos métodos con recargo configurable, tanto online como en el
-// mostrador: Efectivo, Mercado Pago, GoCuotas y Tarjetas. La `key` es el
+// Los únicos métodos con recargo configurable. Online: Efectivo, GoCuotas y
+// Tarjetas ("dinero en cuenta de Mercado Pago" se sacó del checkout: ahora
+// se paga por transferencia al alias, sin comisión). Mostrador: Efectivo,
+// Mercado Pago, GoCuotas y Tarjetas. La `key` es el
 // nombre de la fila en la tabla `payment_surcharges`.
 export const SURCHARGE_METHODS: Record<SurchargeScope, { key: string; label: string }[]> = {
   online: [
     { key: 'efectivo', label: 'Efectivo' },
-    { key: 'mercadopago_dinero', label: 'Mercado Pago (dinero en cuenta)' },
     { key: 'gocuotas', label: 'GoCuotas' },
     { key: 'mercadopago_tarjeta', label: 'Tarjetas (crédito y débito)' },
   ],

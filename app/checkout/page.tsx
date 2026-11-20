@@ -16,7 +16,7 @@ import { OrganicBlob, LeafScatter, LeafSprig, LeafBranch, Bloom, MandalaLine, Vi
 import { useCart, cartLineKey } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { WHATSAPP_NUMBER } from '@/lib/contact';
+import { WHATSAPP_NUMBER, TRANSFER_ALIAS, TRANSFER_HOLDER } from '@/lib/contact';
 import { fetchSurcharges, onlineSurchargePercent, SURCHARGE_METHODS, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
 import { ReceiptUploader } from '@/components/receipt-uploader';
 import { CdnImg } from '@/components/cdn-img';
@@ -41,7 +41,7 @@ export default function CheckoutPage() {
     province: '',
     postal_code: '',
     notes: '',
-    // 'mercadopago_tarjeta' | 'mercadopago_dinero' | 'gocuotas' | 'transferencia' | 'efectivo'
+    // 'mercadopago_tarjeta' | 'gocuotas' | 'transferencia' | 'efectivo'
     payment_method: 'mercadopago_tarjeta',
   });
 
@@ -135,7 +135,7 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.shipping_method, form.postal_code, form.province, cartKey]);
 
-  const isMercadoPago = form.payment_method === 'mercadopago_tarjeta' || form.payment_method === 'mercadopago_dinero';
+  const isMercadoPago = form.payment_method === 'mercadopago_tarjeta';
   const shippingCost = shippingQuote ? shippingQuote[form.shipping_service] : null;
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
   // Con envío a domicilio no se puede confirmar el pedido hasta tener el costo calculado.
@@ -241,7 +241,7 @@ export default function CheckoutPage() {
             </p>
             <div className="rounded-3xl border border-border bg-card p-4 text-left mb-6 shadow-soft space-y-2">
               <p className="text-sm text-muted-foreground">Nos contactaremos a la brevedad para coordinar {form.shipping_method === 'retiro' ? 'el retiro en nuestro local' : 'la entrega'}.</p>
-              {form.payment_method === 'transferencia' && (
+              {form.payment_method === 'transferencia' && !TRANSFER_ALIAS && (
                 <p className="text-sm text-muted-foreground">
                   Te vamos a enviar los datos bancarios por WhatsApp para que puedas transferir.
                 </p>
@@ -254,6 +254,21 @@ export default function CheckoutPage() {
             </div>
             {form.payment_method === 'transferencia' && (
               <>
+                {TRANSFER_ALIAS && (
+                  <div className="rounded-3xl border border-primary/40 bg-card p-4 text-left mb-4 shadow-soft space-y-3">
+                    <p className="text-sm font-medium">Transferí a este alias (desde Mercado Pago o cualquier banco)</p>
+                    <CopyRow label="Alias" value={TRANSFER_ALIAS} />
+                    {paidTotal !== null && (
+                      <CopyRow label="Monto exacto" value={String(paidTotal)} display={formatPrice(paidTotal)} />
+                    )}
+                    {TRANSFER_HOLDER && (
+                      <p className="text-xs text-muted-foreground">
+                        Titular: <span className="font-medium text-foreground">{TRANSFER_HOLDER}</span>. Revisá que coincida antes de transferir.
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Después subí el comprobante acá abajo o mandalo por WhatsApp.</p>
+                  </div>
+                )}
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
                     `Hola! Hice el pedido ${orderId?.slice(0, 8)} y quiero coordinar la transferencia.`
@@ -263,7 +278,7 @@ export default function CheckoutPage() {
                   className="block mb-3"
                 >
                   <Button size="lg" variant="outline" className="w-full">
-                    Coordinar transferencia por WhatsApp
+                    {TRANSFER_ALIAS ? 'Enviar comprobante por WhatsApp' : 'Coordinar transferencia por WhatsApp'}
                   </Button>
                 </a>
                 {orderId && (
@@ -536,23 +551,26 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-mp-tarjeta" className="font-medium cursor-pointer">Tarjeta de crédito o débito</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Con Mercado Pago, cuotas incluidas.{surchargeNote('mercadopago_tarjeta')} Si querés pagar con el saldo de tu cuenta de Mercado Pago, elegí la opción de abajo.
+                      Con Mercado Pago, cuotas incluidas.{surchargeNote('mercadopago_tarjeta')} Para pagar con el saldo de tu cuenta de Mercado Pago sin recargo, elegí transferencia.
                     </p>
                   </div>
                 </div>
 
                 <div className={cn(
                   'flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors',
-                  form.payment_method === 'mercadopago_dinero' && 'border-primary bg-primary/5'
+                  form.payment_method === 'transferencia' && 'border-primary bg-primary/5'
                 )}>
-                  <RadioGroupItem value="mercadopago_dinero" id="pago-mp-dinero" className="mt-1" />
+                  <RadioGroupItem value="transferencia" id="pago-transferencia" className="mt-1" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-primary" />
-                      <Label htmlFor="pago-mp-dinero" className="font-medium cursor-pointer">Dinero en cuenta de Mercado Pago</Label>
+                      <Landmark className="h-4 w-4 text-primary" />
+                      <Label htmlFor="pago-transferencia" className="font-medium cursor-pointer">Transferencia (desde Mercado Pago o cualquier banco)</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pagás con el saldo disponible en tu cuenta de Mercado Pago.{surchargeNote('mercadopago_dinero') || ' Sin recargo.'}
+                      Sin recargo. Si tenés saldo en Mercado Pago, transferilo desde la app.{' '}
+                      {TRANSFER_ALIAS
+                        ? 'Al confirmar te mostramos el alias y el monto exacto.'
+                        : 'Al confirmar te mandamos los datos por WhatsApp.'}
                     </p>
                   </div>
                 </div>
@@ -569,22 +587,6 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       Pagá en 2, 3 o 4 cuotas con tu tarjeta de débito. Te lleva a un checkout seguro de GoCuotas.{surchargeNote('gocuotas')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className={cn(
-                  'flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors',
-                  form.payment_method === 'transferencia' && 'border-primary bg-primary/5'
-                )}>
-                  <RadioGroupItem value="transferencia" id="pago-transferencia" className="mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Landmark className="h-4 w-4 text-primary" />
-                      <Label htmlFor="pago-transferencia" className="font-medium cursor-pointer">Transferencia bancaria</Label>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Registramos tu pedido y te enviamos los datos para transferir por WhatsApp.
                     </p>
                   </div>
                 </div>
@@ -739,5 +741,34 @@ export default function CheckoutPage() {
       </div>
       </div>
     </StoreLayout>
+  );
+}
+
+// Fila con un dato para copiar (alias, monto) en la pantalla de pedido realizado.
+function CopyRow({ label, value, display }: { label: string; value: string; display?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="font-mono text-sm font-medium break-all">{display ?? value}</p>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          navigator.clipboard?.writeText(value).then(
+            () => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            },
+            () => {}
+          );
+        }}
+      >
+        {copied ? 'Copiado' : 'Copiar'}
+      </Button>
+    </div>
   );
 }

@@ -17,7 +17,9 @@ export class CheckoutError extends Error {
   }
 }
 
-export const PAYMENT_METHODS = ['mercadopago_tarjeta', 'mercadopago_dinero', 'gocuotas', 'transferencia', 'efectivo'] as const;
+// 'mercadopago_dinero' ya no se ofrece: con saldo de Mercado Pago se paga
+// por transferencia al alias (sin la comisión de ~8% del checkout).
+export const PAYMENT_METHODS = ['mercadopago_tarjeta', 'gocuotas', 'transferencia', 'efectivo'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export type Delivery = 'retiro' | ShippingService;
 

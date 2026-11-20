@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
     const payer = { name: customerName, email: customerEmail || undefined, phone: customerPhone || undefined };
 
-    if (paymentMethod === 'mercadopago_tarjeta' || paymentMethod === 'mercadopago_dinero') {
+    if (paymentMethod === 'mercadopago_tarjeta') {
       const accessToken = await getValidMercadoPagoAccessToken();
       if (!accessToken) {
         throw new CheckoutError('El pago con Mercado Pago no está configurado todavía. Elegí transferencia o efectivo.', 501);
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         accessToken,
         orderId,
         quote,
-        variant: paymentMethod === 'mercadopago_dinero' ? 'dinero' : 'tarjeta',
+        variant: 'tarjeta',
         siteUrl,
         payer,
       });
