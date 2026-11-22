@@ -41,8 +41,6 @@ END $$;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_cost numeric(10,2) NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_service text;
 
-DROP POLICY IF EXISTS "anon_insert_orders" ON orders;
-
 CREATE OR REPLACE FUNCTION public.enforce_employee_order_restrictions()
 RETURNS trigger
 LANGUAGE plpgsql
