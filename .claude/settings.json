@@ -1,0 +1,1 @@
+{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"~/.claude/hooks/verify-stop.sh 'npm run typecheck && npm run lint'","timeout":200,"statusMessage":"Verificando"}]}]}}
