@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Store, LayoutDashboard, Package, FolderTree, ShoppingCart, ShoppingBag, LogOut, Menu, X, CreditCard, Users, MessageCircle } from 'lucide-react';
+import { Store, LayoutDashboard, Package, FolderTree, ShoppingCart, ShoppingBag, LogOut, Menu, X, CreditCard, Users, MessageCircle, NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { useState } from 'react';
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
   { href: '/admin/ventas', label: 'Mostrador', icon: ShoppingBag, adminOnly: false },
+  { href: '/admin/fiado', label: 'Fiado', icon: NotebookPen, adminOnly: false },
   { href: '/admin/productos', label: 'Productos', icon: Package, adminOnly: false },
   { href: '/admin/categorias', label: 'Categorías', icon: FolderTree, adminOnly: false },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingCart, adminOnly: false },

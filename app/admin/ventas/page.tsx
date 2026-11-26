@@ -15,6 +15,7 @@ import {
   Printer,
   Receipt,
   CircleCheck,
+  NotebookPen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,8 @@ import { PaginationControls } from '@/components/pagination-controls';
 import { fetchAllRows } from '@/lib/fetch-all';
 import { fetchExtraCategoryMap, allCategoryIdsForProduct, type ExtraCategoryMap } from '@/lib/product-categories';
 import { useToast } from '@/hooks/use-toast';
+import { FiadoClientePicker } from '@/components/admin/fiado-cliente-picker';
+import type { AccountBalance } from '@/lib/fiado';
 import { cn } from '@/lib/utils';
 
 // variant / variantStock: solo para productos con variantes (color, talle...).
@@ -54,13 +57,15 @@ type CartLine = { product: Product; quantity: number; variant?: CartVariant; var
 const lineKey = (l: CartLine) => cartLineKey(l.product.id, l.variant?.id);
 const variantText = (v?: CartVariant) => (v ? `${v.group_name}: ${v.label}` : undefined);
 
-// Formas de pago del mostrador: solo estas cuatro. Cada una tiene su recargo
-// configurable en Admin → Pagos (clave `mostrador_<value>`).
+// Formas de pago del mostrador. Cada una tiene su recargo configurable en
+// Admin → Pagos (clave `mostrador_<value>`). "Fiado" suma la venta a la cuenta
+// corriente del cliente (ver Admin → Fiado).
 const PAYMENT_METHODS = [
   { value: 'efectivo', label: 'Efectivo', icon: Banknote },
   { value: 'mercadopago', label: 'Mercado Pago', icon: Wallet },
   { value: 'gocuotas', label: 'GoCuotas', icon: Landmark },
   { value: 'tarjeta', label: 'Tarjetas', icon: CreditCard },
+  { value: 'fiado', label: 'Fiado', icon: NotebookPen },
 ];
 
 // Incluye las formas de pago que ya no se ofrecen, para que las ventas
@@ -153,6 +158,7 @@ export default function VentasPage() {
   const [page, setPage] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [customerName, setCustomerName] = useState('');
+  const [fiadoCliente, setFiadoCliente] = useState<AccountBalance | null>(null);
   const [discount, setDiscount] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -345,13 +351,27 @@ export default function VentasPage() {
       variant: variantText(l.variant),
     }));
 
-    const { data, error } = await supabase.rpc('register_counter_sale', {
-      p_items: payloadItems,
-      p_payment_method: paymentMethod,
-      p_customer_name: customerName.trim() || null,
-      p_notes: notes.trim() || null,
-      p_discount: discountNum,
-    });
+    const esFiado = paymentMethod === 'fiado';
+    if (esFiado && !fiadoCliente) {
+      setSubmitting(false);
+      toast({ title: 'Elegí a qué cliente se le fía', variant: 'destructive' });
+      return;
+    }
+
+    const { data, error } = esFiado
+      ? await supabase.rpc('register_fiado_sale', {
+          p_account_id: fiadoCliente!.id,
+          p_items: payloadItems,
+          p_notes: notes.trim() || null,
+          p_discount: discountNum,
+        })
+      : await supabase.rpc('register_counter_sale', {
+          p_items: payloadItems,
+          p_payment_method: paymentMethod,
+          p_customer_name: customerName.trim() || null,
+          p_notes: notes.trim() || null,
+          p_discount: discountNum,
+        });
 
     setSubmitting(false);
 
@@ -372,6 +392,10 @@ export default function VentasPage() {
     setTodayCount((c) => c + 1);
     setTodayTotal((t) => t + Number(sale.total));
 
+    if (esFiado) {
+      toast({ title: `Fiado a ${fiadoCliente!.name}`, description: `Ahora debe ${formatPrice(Number(fiadoCliente!.balance) + Number(sale.total))}` });
+      setFiadoCliente(null);
+    }
     setCart([]);
     setCustomerName('');
     setNotes('');
@@ -447,7 +471,7 @@ export default function VentasPage() {
               type="single"
               value={paymentMethod}
               onValueChange={(v) => v && setPaymentMethod(v)}
-              className="grid grid-cols-4 gap-1.5 w-full"
+              className="grid grid-cols-5 gap-1.5 w-full"
             >
               {PAYMENT_METHODS.map((m) => (
                 <ToggleGroupItem
@@ -466,15 +490,22 @@ export default function VentasPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Cliente (opcional)</Label>
-              <Input
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Consumidor final"
-                className="h-9"
-              />
-            </div>
+            {paymentMethod === 'fiado' ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cliente que se lleva fiado</Label>
+                <FiadoClientePicker value={fiadoCliente} onChange={setFiadoCliente} />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cliente (opcional)</Label>
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Consumidor final"
+                  className="h-9"
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs">Descuento ($)</Label>
               <Input
@@ -525,10 +556,10 @@ export default function VentasPage() {
           <Button
             size="lg"
             className="w-full"
-            disabled={cart.length === 0 || submitting}
+            disabled={cart.length === 0 || submitting || (paymentMethod === 'fiado' && !fiadoCliente)}
             onClick={handleConfirm}
           >
-            {submitting ? 'Registrando...' : `Registrar venta · ${formatPrice(total)}`}
+            {submitting ? 'Registrando...' : paymentMethod === 'fiado' ? `Anotar fiado · ${formatPrice(total)}` : `Registrar venta · ${formatPrice(total)}`}
           </Button>
         </div>
       </div>
