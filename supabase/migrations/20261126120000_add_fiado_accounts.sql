@@ -220,3 +220,13 @@ REVOKE ALL ON FUNCTION public.register_account_adjustment(uuid, numeric, text) F
 GRANT EXECUTE ON FUNCTION public.register_fiado_sale(uuid, jsonb, text, numeric) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.register_account_payment(uuid, numeric, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.register_account_adjustment(uuid, numeric, text) TO authenticated;
+
+-- Defensa en profundidad (aplicado aparte como `fiado_revoke_anon`): los visitantes sin
+-- sesión no ejecutan las funciones ni leen las tablas (igual los bloqueaban is_staff y RLS).
+REVOKE EXECUTE ON FUNCTION public.is_staff() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.register_fiado_sale(uuid, jsonb, text, numeric) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.register_account_payment(uuid, numeric, text, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.register_account_adjustment(uuid, numeric, text) FROM anon;
+REVOKE ALL ON public.customer_accounts FROM anon;
+REVOKE ALL ON public.account_movements FROM anon;
+REVOKE ALL ON public.account_balances FROM anon;
