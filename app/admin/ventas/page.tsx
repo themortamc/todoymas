@@ -491,7 +491,7 @@ export default function VentasPage() {
 
           <div className="grid grid-cols-2 gap-3">
             {paymentMethod === 'fiado' ? (
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Cliente que se lleva fiado</Label>
                 <FiadoClientePicker value={fiadoCliente} onChange={setFiadoCliente} />
               </div>
